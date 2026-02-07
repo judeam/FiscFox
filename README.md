@@ -22,6 +22,28 @@ FiscFox helps German self-employed professionals track income, expenses, and tax
 - **Tax Optimization**: AfA depreciation, Reisekosten, Geschenke limits, Homeoffice-Pauschale, Bewirtung.
 - **Local AI**: Chat with your tax data using local LLMs via Ollama. No data leaves your device.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
+  <br><em>Dashboard — financial overview with income forecast and tax deadlines</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/expenses.png" alt="Expenses" width="800">
+  <br><em>Expenses — categorized tracking with Vorsteuer deduction</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/invoices.png" alt="Invoices" width="800">
+  <br><em>Invoices — status tracking with VAT summary</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/taxes.png" alt="Tax Overview" width="800">
+  <br><em>Tax Overview — deadlines, prepayments, and EUeR preview</em>
+</p>
+
 ## Quick Start
 
 ### Docker (Recommended)
