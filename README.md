@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="fiscfox_logo.png" alt="FiscFox Logo" width="200">
+  <img src="fiscfox_logo_transparent.png" alt="FiscFox Logo" width="200">
 </p>
 
 <h1 align="center">FiscFox</h1>
