@@ -1,0 +1,85 @@
+<aside class="fixed left-0 top-0 h-screen w-64 bg-forest dark:bg-neutral-800 border-r border-forest-light/20 dark:border-neutral-700 flex flex-col z-50">
+    <!-- Logo -->
+    <div class="p-6 border-b border-white/10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md overflow-hidden">
+                <img src="/static/fiscfox_logo.png" alt="FiscFox" class="w-10 h-10 object-cover">
+            </div>
+            <div>
+                <h1 class="font-display text-xl font-semibold text-white">FiscFox</h1>
+                <p class="text-xs text-white/50">{{ _("nav.tax_management") if _ else "Steuerverwaltung" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="flex-1 p-4 space-y-1">
+        {% set current_path = request.url.path %}
+        <a href="/" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/' or current_path == '/dashboard' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
+            {{ _("nav.dashboard") if _ else "Dashboard" }}
+        </a>
+        <a href="/ausgaben" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/ausgaben' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            {{ _("nav.expenses") if _ else "Ausgaben" }}
+        </a>
+        <a href="/krankenversicherung" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/krankenversicherung' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            {{ _("nav.health_insurance") if _ else "Krankenversicherung" }}
+        </a>
+        <a href="/rechnungen" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/rechnungen' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            {{ _("nav.invoices") if _ else "Rechnungen" }}
+        </a>
+        <a href="/kunden" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/kunden' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            {{ _("nav.clients") if _ else "Kunden" }}
+        </a>
+        <a href="/steuern" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/steuern' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {{ _("nav.tax_deadlines") if _ else "Steuertermine" }}
+        </a>
+        <a href="/berichte" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/berichte' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            {{ _("nav.reports") if _ else "Berichte" }}
+        </a>
+
+        <div class="mt-4 pt-4 border-t border-white/10">
+            <a href="/einstellungen" class="flex items-center gap-3 px-4 py-3 rounded-lg {% if current_path == '/einstellungen' %}bg-white/10 text-white font-medium{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %} transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                {{ _("nav.settings") if _ else "Einstellungen" }}
+            </a>
+        </div>
+    </nav>
+
+    <!-- User Section -->
+    <div class="p-4 border-t border-white/10">
+        <button onclick="toggleDarkMode()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+            <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+            <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span class="dark:hidden">{{ _("nav.dark_mode") if _ else "Dunkelmodus" }}</span>
+            <span class="hidden dark:inline">{{ _("nav.light_mode") if _ else "Hellmodus" }}</span>
+        </button>
+    </div>
+</aside>

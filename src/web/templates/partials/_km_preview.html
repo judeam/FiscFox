@@ -1,0 +1,9 @@
+<div class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3">
+    <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("travel.km_preview") if _ else "Fahrtkosten" }}</p>
+    <p class="font-mono text-lg font-semibold text-forest dark:text-sage">
+        €{{ "{:,.2f}".format(preview.deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </p>
+    <div class="mt-1 text-xs text-slate dark:text-gray-400">
+        {{ "{:,.1f}".format(preview.total_km).replace(",", ".") }} km × €{{ preview.rate_applied }}
+    </div>
+</div>

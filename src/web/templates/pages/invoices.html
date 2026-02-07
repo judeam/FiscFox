@@ -1,0 +1,646 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("invoice.title") if _ else "Rechnungen" }}{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto flex-1 flex flex-col min-h-0 page-enter">
+
+    <!-- Compact Header Row -->
+    <header class="flex items-center justify-between mb-4 flex-shrink-0 hero-enter">
+        <div class="flex items-center gap-6">
+            <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+                {{ _("invoice.title") if _ else "Rechnungen" }}
+            </h1>
+            <span class="px-2.5 py-1 bg-cream/70 dark:bg-neutral-700 rounded-lg text-sm font-semibold text-charcoal dark:text-white">
+                {{ current_year }}
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- Upload PDF Button -->
+            <button
+                hx-get="/upload/form"
+                hx-target="#upload-form-container"
+                hx-swap="innerHTML"
+                class="flex items-center gap-2 px-3 py-2 bg-forest/10 hover:bg-forest/20 text-forest dark:text-sage border border-forest/20 font-medium text-sm rounded-lg transition-all"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                PDF
+            </button>
+            <!-- New Invoice Button -->
+            <button
+                hx-get="/invoices/form"
+                hx-target="#invoice-form-container"
+                hx-swap="innerHTML"
+                class="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber-dark text-forest font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                {{ _("dashboard.new_invoice") if _ else "Neue Rechnung" }}
+            </button>
+        </div>
+    </header>
+
+    <!-- Form Containers (HTMX targets) -->
+    <div id="invoice-form-container"></div>
+    <div id="upload-form-container"></div>
+
+    <!-- Main Content Grid -->
+    <div class="flex-1 grid grid-cols-12 gap-4 min-h-0 overflow-hidden">
+
+        <!-- Left Column: Stats + Charts -->
+        <div class="col-span-3 flex flex-col gap-2 min-h-0 overflow-y-auto overflow-x-hidden">
+
+            <!-- Compact Stats Grid -->
+            <div class="grid grid-cols-2 gap-2 flex-shrink-0 stagger-children">
+                <!-- Total Revenue -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group hover:border-sage/30 transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("invoice.revenue") if _ else "Umsatz" }}</span>
+                        <div class="w-5 h-5 bg-sage/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.total_revenue).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-sage font-medium">{{ stats.invoice_count }} {{ _("invoice.invoices_count") if _ else "Rech." }}</p>
+                </div>
+
+                <!-- Outstanding -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group {% if stats.outstanding > 0 %}border-amber/30{% endif %} transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("invoice.outstanding") if _ else "Offen" }}</span>
+                        <div class="w-5 h-5 bg-amber/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold text-amber-dark dark:text-amber">€{{ "{:,.0f}".format(stats.outstanding).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-amber-dark dark:text-amber font-medium">{{ stats.pending_count }} {{ _("invoice.open") if _ else "offen" }}</p>
+                </div>
+
+                <!-- Overdue -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group {% if stats.overdue_count > 0 %}border-terracotta/30{% endif %} transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("status.overdue") if _ else "Überfällig" }}</span>
+                        <div class="w-5 h-5 {% if stats.overdue_count > 0 %}bg-terracotta/10{% else %}bg-sage/10{% endif %} rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 {% if stats.overdue_count > 0 %}text-terracotta{% else %}text-sage{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold {% if stats.overdue_count > 0 %}text-terracotta{% else %}text-sage{% endif %}">€{{ "{:,.0f}".format(stats.overdue_amount).replace(",", " ") }}</p>
+                    <p class="text-[9px] {% if stats.overdue_count > 0 %}text-terracotta{% else %}text-sage{% endif %} font-medium flex items-center gap-1">
+                        {% if stats.overdue_count > 0 %}<span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>{% endif %}
+                        {{ stats.overdue_count }} {{ _("invoice.reminders") if _ else "Mahnungen" }}
+                    </p>
+                </div>
+
+                <!-- This Month -->
+                <div class="bg-gradient-to-br from-forest to-forest-light dark:from-neutral-700 dark:to-neutral-600 rounded-lg p-3 text-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-white/60">{{ _("invoice.this_month") if _ else "Monat" }}</span>
+                        <div class="w-5 h-5 bg-white/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold">€{{ "{:,.0f}".format(stats.this_month).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-amber font-medium">{{ stats.this_month_count }} {{ _("invoice.new") if _ else "neu" }}</p>
+                </div>
+            </div>
+
+            <!-- Revenue by Client Chart -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-2">
+                    {{ _("invoice.revenue_by_client") if _ else "Umsatz nach Kunde" }}
+                </h3>
+                <div id="client-chart" style="width: 100%; height: 120px;"></div>
+            </div>
+
+            <!-- Monthly Revenue Sparkline -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-2">
+                    {{ _("invoice.monthly_revenue") if _ else "Monatsverlauf" }}
+                </h3>
+                <div id="revenue-chart" style="width: 100%; height: 80px;"></div>
+            </div>
+
+            <!-- VAT Summary Compact -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-2">
+                    {{ _("invoice.vat_summary") if _ else "USt. Übersicht" }}
+                </h3>
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate dark:text-gray-400">Reverse Charge</span>
+                        <span class="font-mono text-[11px] font-medium text-charcoal dark:text-white">€{{ "{:,.0f}".format(vat_summary.reverse_charge).replace(",", " ") }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate dark:text-gray-400">19% USt.</span>
+                        <span class="font-mono text-[11px] font-medium text-charcoal dark:text-white">€{{ "{:,.0f}".format(vat_summary.standard).replace(",", " ") }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate dark:text-gray-400">7% USt.</span>
+                        <span class="font-mono text-[11px] font-medium text-charcoal dark:text-white">€{{ "{:,.0f}".format(vat_summary.reduced).replace(",", " ") }}</span>
+                    </div>
+                    <div class="border-t border-cream-dark/50 dark:border-neutral-700 pt-1.5 mt-1.5 flex items-center justify-between">
+                        <span class="text-[10px] font-semibold text-charcoal dark:text-white">{{ _("invoice.collected_vat") if _ else "Gesammelt" }}</span>
+                        <span class="font-mono text-xs font-bold text-forest dark:text-amber">€{{ "{:,.0f}".format(vat_summary.total_vat).replace(",", " ") }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Invoice Table -->
+        <div class="col-span-9 flex flex-col min-h-0">
+
+            <!-- Status Tabs + Search Row -->
+            <div class="flex items-center justify-between mb-3 flex-shrink-0">
+                <div class="flex gap-1.5">
+                    <button
+                        hx-get="/invoices?status=all"
+                        hx-target="#invoice-tbody"
+                        hx-swap="innerHTML"
+                        class="invoice-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-forest text-white transition-colors"
+                        data-status="all"
+                    >
+                        {{ _("dashboard.all") if _ else "Alle" }}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-white/20">{{ stats.invoice_count }}</span>
+                    </button>
+                    <button
+                        hx-get="/invoices?status=pending"
+                        hx-target="#invoice-tbody"
+                        hx-swap="innerHTML"
+                        class="invoice-tab px-3 py-1.5 text-xs font-semibold rounded-lg text-charcoal dark:text-gray-300 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 hover:border-amber/50 transition-colors"
+                        data-status="pending"
+                    >
+                        {{ _("status.pending") if _ else "Offen" }}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber/20 text-amber-dark dark:text-amber">{{ stats.pending_count }}</span>
+                    </button>
+                    <button
+                        hx-get="/invoices?status=paid"
+                        hx-target="#invoice-tbody"
+                        hx-swap="innerHTML"
+                        class="invoice-tab px-3 py-1.5 text-xs font-semibold rounded-lg text-charcoal dark:text-gray-300 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 hover:border-sage/50 transition-colors"
+                        data-status="paid"
+                    >
+                        {{ _("status.paid") if _ else "Bezahlt" }}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-sage/20 text-sage">{{ stats.paid_count }}</span>
+                    </button>
+                    <button
+                        hx-get="/invoices?status=overdue"
+                        hx-target="#invoice-tbody"
+                        hx-swap="innerHTML"
+                        class="invoice-tab px-3 py-1.5 text-xs font-semibold rounded-lg text-charcoal dark:text-gray-300 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 hover:border-terracotta/50 transition-colors"
+                        data-status="overdue"
+                    >
+                        {{ _("status.overdue") if _ else "Überfällig" }}
+                        {% if stats.overdue_count > 0 %}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-terracotta/20 text-terracotta">{{ stats.overdue_count }}</span>
+                        {% else %}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-cream-dark/50 dark:bg-neutral-700 text-slate/50">0</span>
+                        {% endif %}
+                    </button>
+                </div>
+                <!-- Search -->
+                <div class="relative">
+                    <input
+                        type="search"
+                        placeholder="{{ _('invoice.search') if _ else 'Suchen...' }}"
+                        hx-get="/invoices/search"
+                        hx-trigger="keyup changed delay:300ms"
+                        hx-target="#invoice-tbody"
+                        hx-swap="innerHTML"
+                        name="query"
+                        class="w-44 pl-8 pr-3 py-1.5 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-forest/20 dark:focus:ring-amber/20"
+                    />
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Invoice Table -->
+            <div class="flex-1 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 overflow-hidden min-h-0">
+                <div class="overflow-auto h-full">
+                    <table class="w-full">
+                        <thead class="bg-cream/70 dark:bg-neutral-700/50 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("invoice.number") if _ else "Nr." }}</th>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.client") if _ else "Kunde" }}</th>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.date") if _ else "Datum" }}</th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.amount") if _ else "Betrag" }}</th>
+                                <th class="px-4 py-2.5 text-center text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-24">{{ _("table.status") if _ else "Status" }}</th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-20"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-tbody" class="divide-y divide-cream-dark/30 dark:divide-neutral-700/50">
+                            {% for invoice in invoices %}
+                            <tr class="hover:bg-cream/30 dark:hover:bg-neutral-700/20 transition-colors group">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono text-xs font-semibold text-forest dark:text-sage">{{ invoice.invoice_number }}</span>
+                                        {% if invoice.pdf_path %}
+                                        <span class="text-slate/40 dark:text-gray-600" title="{{ _('invoice.finalized') if _ else 'Finalisiert (PDF)' }}">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="text-sm font-medium text-charcoal dark:text-white truncate max-w-[200px]">{{ invoice.client }}</p>
+                                    {% if invoice.description %}
+                                    <p class="text-[10px] text-slate dark:text-gray-500 truncate max-w-[200px]">{{ invoice.description[:40] }}{% if invoice.description|length > 40 %}...{% endif %}</p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="text-xs font-mono text-charcoal dark:text-white">{{ invoice.date.strftime('%d.%m.%Y') }}</p>
+                                    {% if invoice.status.value == 'overdue' %}
+                                    <p class="text-[10px] text-terracotta font-medium">{{ _("invoice.due") if _ else "Fällig" }}: {{ invoice.due_date.strftime('%d.%m') }}</p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+                                        €{{ "{:,.2f}".format(invoice.amount).replace(",", " ").replace(".", ",") }}
+                                    </p>
+                                    {% if invoice.vat_amount > 0 %}
+                                    <p class="text-[10px] font-mono text-slate dark:text-gray-500">
+                                        +{{ "{:,.0f}".format(invoice.vat_amount).replace(",", " ") }} USt
+                                    </p>
+                                    {% else %}
+                                    <p class="text-[10px] font-mono text-slate/50 dark:text-gray-600">RC</p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    {% if invoice.status.value == 'paid' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-sage/15 text-sage">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        {{ _("status.paid") if _ else "Bezahlt" }}
+                                    </span>
+                                    {% elif invoice.status.value == 'overdue' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-terracotta/15 text-terracotta">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>
+                                        {{ _("status.overdue") if _ else "Überfällig" }}
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-amber/15 text-amber-dark dark:text-amber">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/>
+                                        </svg>
+                                        {{ _("status.pending") if _ else "Offen" }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <!-- Mark as Paid -->
+                                        {% if invoice.status.value != 'paid' %}
+                                        <button
+                                            hx-post="/invoices/{{ invoice.id }}/mark-paid"
+                                            hx-target="closest tr"
+                                            hx-swap="outerHTML"
+                                            class="p-1.5 text-slate hover:text-sage hover:bg-sage/10 rounded-md transition-colors"
+                                            title="{{ _('invoice.mark_paid') if _ else 'Als bezahlt markieren' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                        {% endif %}
+                                        <!-- View Details -->
+                                        <button
+                                            hx-get="/invoices/{{ invoice.id }}"
+                                            hx-target="body"
+                                            hx-swap="beforeend"
+                                            class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                                            title="{{ _('invoice.details') if _ else 'Details anzeigen' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Edit (only shown if no PDF and not paid) -->
+                                        {% if not invoice.pdf_path and invoice.status.value != 'paid' %}
+                                        <button
+                                            hx-get="/invoices/{{ invoice.id }}/edit"
+                                            hx-target="#invoice-form-container"
+                                            hx-swap="innerHTML"
+                                            class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                                            title="{{ _('common.edit') if _ else 'Bearbeiten' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+                                        {% endif %}
+                                        <!-- Print/PDF - always use preview modal, which handles existing PDFs too -->
+                                        <button
+                                            hx-get="/invoices/preview-modal/{{ invoice.id }}"
+                                            hx-target="body"
+                                            hx-swap="beforeend"
+                                            class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                                            title="{{ _('invoice.preview_print') if _ else 'PDF erstellen' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                {% if invoice.pdf_path %}
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                                {% else %}
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                {% endif %}
+                                            </svg>
+                                        </button>
+                                        <!-- Delete -->
+                                        <button
+                                            hx-delete="/invoices/{{ invoice.id }}"
+                                            hx-confirm="{{ _('invoice.delete_confirm') if _ else 'Rechnung wirklich löschen?' }}"
+                                            hx-target="closest tr"
+                                            hx-swap="outerHTML"
+                                            class="p-1.5 text-slate hover:text-terracotta hover:bg-terracotta/10 rounded-md transition-colors"
+                                            title="{{ _('invoice.delete') if _ else 'Löschen' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-16 text-center">
+                                    <div class="flex flex-col items-center gap-3">
+                                        <div class="w-14 h-14 bg-cream dark:bg-neutral-700 rounded-xl flex items-center justify-center">
+                                            <svg class="w-7 h-7 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("invoice.no_invoices") if _ else "Noch keine Rechnungen" }}</p>
+                                            <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("invoice.create_first_hint") if _ else "Erstelle deine erste Rechnung" }}</p>
+                                        </div>
+                                        <button
+                                            hx-get="/invoices/form"
+                                            hx-target="#invoice-form-container"
+                                            hx-swap="innerHTML"
+                                            class="mt-2 px-4 py-2 bg-forest hover:bg-forest-light text-white text-xs font-medium rounded-lg transition-colors"
+                                        >
+                                            {{ _("dashboard.new_invoice") if _ else "Neue Rechnung" }}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const clientData = {{ client_revenue | tojson }};
+    const monthlyRevenue = {{ monthly_revenue | tojson }};
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Tab switching
+    document.querySelectorAll('.invoice-tab').forEach(tab => {
+        tab.addEventListener('htmx:afterRequest', function() {
+            document.querySelectorAll('.invoice-tab').forEach(t => {
+                t.classList.remove('bg-forest', 'text-white');
+                t.classList.add('bg-white', 'dark:bg-neutral-800', 'text-charcoal', 'dark:text-gray-300', 'border');
+            });
+            this.classList.remove('bg-white', 'dark:bg-neutral-800', 'text-charcoal', 'dark:text-gray-300', 'border');
+            this.classList.add('bg-forest', 'text-white');
+        });
+    });
+
+    // Client Revenue Compact Horizontal Bars
+    function renderClientChart() {
+        const container = document.getElementById('client-chart');
+        if (!container) return;
+
+        const margin = { top: 5, right: 5, bottom: 5, left: 70 };
+        const width = container.offsetWidth - margin.left - margin.right;
+        const height = 120 - margin.top - margin.bottom;
+
+        d3.select('#client-chart').selectAll('*').remove();
+
+        const svg = d3.select('#client-chart')
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const clients = Object.entries(clientData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        if (clients.length === 0) {
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '11px')
+                .style('fill', isDark ? '#6b7280' : '#94a3b8')
+                .text('Keine Daten');
+            return;
+        }
+
+        const x = d3.scaleLinear()
+            .domain([0, Math.max(...clients.map(c => c[1])) * 1.1])
+            .range([0, width]);
+
+        const y = d3.scaleBand()
+            .domain(clients.map(c => c[0]))
+            .range([0, height])
+            .padding(0.35);
+
+        // Bars
+        svg.selectAll('.bar')
+            .data(clients)
+            .enter()
+            .append('rect')
+            .attr('x', 0)
+            .attr('y', d => y(d[0]))
+            .attr('width', 0)
+            .attr('height', y.bandwidth())
+            .attr('fill', isDark ? '#4a7c59' : '#1a3a2f')
+            .attr('rx', 3)
+            .transition()
+            .duration(600)
+            .delay((d, i) => i * 80)
+            .attr('width', d => x(d[1]));
+
+        // Labels
+        svg.selectAll('.label')
+            .data(clients)
+            .enter()
+            .append('text')
+            .attr('x', -4)
+            .attr('y', d => y(d[0]) + y.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('text-anchor', 'end')
+            .style('font-family', 'DM Sans')
+            .style('font-size', '10px')
+            .style('fill', isDark ? '#d1d5db' : '#2c2c2c')
+            .text(d => d[0].length > 9 ? d[0].slice(0, 9) + '…' : d[0]);
+
+        // Values
+        svg.selectAll('.value')
+            .data(clients)
+            .enter()
+            .append('text')
+            .attr('x', d => Math.min(x(d[1]) + 4, width - 30))
+            .attr('y', d => y(d[0]) + y.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .style('font-family', 'JetBrains Mono')
+            .style('font-size', '9px')
+            .style('fill', isDark ? '#9ca3af' : '#64748b')
+            .style('opacity', 0)
+            .text(d => `€${(d[1]/1000).toFixed(0)}k`)
+            .transition()
+            .duration(600)
+            .delay((d, i) => i * 80 + 300)
+            .style('opacity', 1);
+    }
+
+    // Monthly Revenue Sparkline
+    function renderRevenueChart() {
+        const container = document.getElementById('revenue-chart');
+        if (!container) return;
+
+        const margin = { top: 5, right: 5, bottom: 20, left: 35 };
+        const width = container.offsetWidth - margin.left - margin.right;
+        const height = 80 - margin.top - margin.bottom;
+
+        d3.select('#revenue-chart').selectAll('*').remove();
+
+        const svg = d3.select('#revenue-chart')
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const months = Object.keys(monthlyRevenue).sort();
+        const values = months.map(m => monthlyRevenue[m]);
+
+        if (months.length === 0) {
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '11px')
+                .style('fill', isDark ? '#6b7280' : '#94a3b8')
+                .text('Keine Daten');
+            return;
+        }
+
+        const x = d3.scalePoint()
+            .domain(months.map(m => m.slice(5)))
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, Math.max(...values) * 1.2])
+            .range([height, 0]);
+
+        // Area
+        const area = d3.area()
+            .x((d, i) => x(months[i].slice(5)))
+            .y0(height)
+            .y1(d => y(d))
+            .curve(d3.curveMonotoneX);
+
+        // Gradient
+        const defs = svg.append('defs');
+        const gradient = defs.append('linearGradient')
+            .attr('id', 'sparkGradient')
+            .attr('x1', '0%').attr('y1', '0%')
+            .attr('x2', '0%').attr('y2', '100%');
+        gradient.append('stop').attr('offset', '0%').attr('stop-color', '#4a7c59').attr('stop-opacity', 0.3);
+        gradient.append('stop').attr('offset', '100%').attr('stop-color', '#4a7c59').attr('stop-opacity', 0.02);
+
+        svg.append('path')
+            .datum(values)
+            .attr('fill', 'url(#sparkGradient)')
+            .attr('d', area);
+
+        // Line
+        const line = d3.line()
+            .x((d, i) => x(months[i].slice(5)))
+            .y(d => y(d))
+            .curve(d3.curveMonotoneX);
+
+        svg.append('path')
+            .datum(values)
+            .attr('fill', 'none')
+            .attr('stroke', '#4a7c59')
+            .attr('stroke-width', 2)
+            .attr('d', line);
+
+        // Dots
+        svg.selectAll('.dot')
+            .data(values)
+            .enter()
+            .append('circle')
+            .attr('cx', (d, i) => x(months[i].slice(5)))
+            .attr('cy', d => y(d))
+            .attr('r', 3)
+            .attr('fill', '#4a7c59')
+            .attr('stroke', isDark ? '#262626' : '#fff')
+            .attr('stroke-width', 1.5);
+
+        // X Axis (months)
+        svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x).tickSize(0))
+            .selectAll('text')
+            .style('font-family', 'JetBrains Mono')
+            .style('font-size', '8px')
+            .style('fill', isDark ? '#6b7280' : '#94a3b8');
+
+        svg.selectAll('.domain').attr('stroke', 'transparent');
+    }
+
+    // Initial render
+    renderClientChart();
+    renderRevenueChart();
+
+    // Re-render on resize
+    window.addEventListener('resize', () => {
+        renderClientChart();
+        renderRevenueChart();
+    });
+
+    // Re-render on dark mode toggle
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                setTimeout(() => {
+                    renderClientChart();
+                    renderRevenueChart();
+                }, 350);
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+</script>
+{% endblock %}

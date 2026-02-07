@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("client.title") if _ else "Kunden" }}{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto h-[calc(100vh-120px)] flex flex-col page-enter">
+
+    <!-- Compact Header Row -->
+    <header class="flex items-center justify-between mb-4 flex-shrink-0 hero-enter">
+        <div class="flex items-center gap-6">
+            <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+                {{ _("client.title") if _ else "Kunden" }}
+            </h1>
+            <span class="px-2.5 py-1 bg-cream/70 dark:bg-neutral-700 rounded-lg text-sm font-semibold text-charcoal dark:text-white">
+                {{ selected_year }}
+            </span>
+        </div>
+        <button
+            hx-get="/clients/form"
+            hx-target="#client-form-container"
+            hx-swap="innerHTML"
+            class="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber-dark text-forest font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _("client.new") if _ else "Neuer Kunde" }}
+        </button>
+    </header>
+
+    <!-- Form Container (HTMX target) -->
+    <div id="client-form-container"></div>
+
+    <!-- Main Content Grid: 3 columns -->
+    <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+
+        <!-- Left Column: Stats + Warning -->
+        <div class="col-span-3 flex flex-col gap-3">
+
+            <!-- Compact Stats Cards -->
+            <div class="grid grid-cols-2 gap-3 stagger-children">
+                <!-- Total Clients -->
+                <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-4 group hover:border-forest/30 dark:hover:border-sage/30 transition-colors">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("client.total") if _ else "Kunden" }}</span>
+                        <div class="w-6 h-6 bg-forest/10 dark:bg-forest/20 rounded-md flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-forest dark:text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-2xl font-bold text-charcoal dark:text-white">{{ stats.total_clients }}</p>
+                    <p class="text-[10px] text-sage font-medium mt-0.5">{{ _("client.active") if _ else "aktiv" }}</p>
+                </div>
+
+                <!-- Clients at Risk -->
+                <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-4 group {% if stats.clients_at_risk > 0 %}border-terracotta/30{% endif %} transition-colors">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("client.at_risk") if _ else "Risiko" }}</span>
+                        <div class="w-6 h-6 {% if stats.clients_at_risk > 0 %}bg-terracotta/10{% else %}bg-sage/10{% endif %} rounded-md flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 {% if stats.clients_at_risk > 0 %}text-terracotta{% else %}text-sage{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-2xl font-bold {% if stats.clients_at_risk > 0 %}text-terracotta{% else %}text-sage{% endif %}">{{ stats.clients_at_risk }}</p>
+                    <p class="text-[10px] {% if stats.clients_at_risk > 0 %}text-terracotta{% else %}text-sage{% endif %} font-medium mt-0.5">>83%</p>
+                </div>
+
+                <!-- Total Invoiced -->
+                <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-4 group hover:border-sage/30 transition-colors">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("client.total_invoiced") if _ else "Fakturiert" }}</span>
+                        <div class="w-6 h-6 bg-sage/10 rounded-md flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-lg font-bold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.total_invoiced).replace(",", " ") }}</p>
+                    <p class="text-[10px] text-sage font-medium mt-0.5">{{ _("client.net_amount") if _ else "netto" }}</p>
+                </div>
+
+                <!-- Outstanding -->
+                <div class="bg-gradient-to-br from-forest to-forest-light dark:from-neutral-700 dark:to-neutral-600 rounded-xl p-4 text-white">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-white/60">{{ _("client.outstanding") if _ else "Offen" }}</span>
+                        <div class="w-6 h-6 bg-white/10 rounded-md flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-lg font-bold">€{{ "{:,.0f}".format(stats.total_outstanding).replace(",", " ") }}</p>
+                    <p class="text-[10px] text-amber font-medium mt-0.5">{{ _("client.open_payments") if _ else "ausstehend" }}</p>
+                </div>
+            </div>
+
+            <!-- Scheinselbständigkeit Warning - Compact -->
+            {% if stats.scheinselbstaendig_warning %}
+            <div class="relative bg-gradient-to-br from-terracotta/5 via-amber/5 to-terracotta/5 dark:from-terracotta/10 dark:via-amber/10 dark:to-terracotta/10 border border-terracotta/20 rounded-xl p-4 overflow-hidden">
+                <!-- Subtle pattern -->
+                <div class="absolute inset-0 opacity-[0.03]">
+                    <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                        <defs><pattern id="warn-dots" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="currentColor"/></pattern></defs>
+                        <rect width="100%" height="100%" fill="url(#warn-dots)"/>
+                    </svg>
+                </div>
+                <div class="relative">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-terracotta/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-terracotta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-bold text-terracotta">{{ _("client.scheinselbstaendig_warning_title") if _ else "Scheinselbständigkeit" }}</h3>
+                            <p class="text-[11px] text-charcoal/70 dark:text-gray-400 mt-1 leading-relaxed">
+                                {{ _("client.scheinselbstaendig_warning_short") if _ else ">83% Einkommen von einem Kunden (§ 7 SGB IV)" }}
+                            </p>
+                            {% if distribution.top_client %}
+                            <div class="mt-2 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>
+                                <span class="text-[11px] font-semibold text-terracotta truncate">
+                                    {{ distribution.top_client.client.name }}: {{ "%.0f"|format(distribution.top_client.income_percentage * 100) }}%
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Income Distribution Visualization -->
+            {% if top_clients %}
+            <div class="flex-1 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-4">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-3">
+                    {{ _("client.income_distribution") if _ else "Umsatzverteilung" }} {{ selected_year }}
+                </h3>
+                <div class="space-y-2">
+                    {% for cs in top_clients[:5] %}
+                    <div class="group">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-medium text-charcoal dark:text-white truncate max-w-[120px]" title="{{ cs.client.name }}">{{ cs.client.name[:18] }}{% if cs.client.name|length > 18 %}...{% endif %}</span>
+                            <span class="text-xs font-mono font-bold {% if cs.risk_level == 'high' %}text-terracotta{% elif cs.risk_level == 'medium' %}text-amber-dark dark:text-amber{% else %}text-sage{% endif %}">{{ "%.0f"|format(cs.income_percentage * 100) }}%</span>
+                        </div>
+                        <div class="h-2 bg-cream dark:bg-neutral-700 rounded-full overflow-hidden">
+                            <div
+                                class="h-full rounded-full transition-all duration-500 {% if cs.risk_level == 'high' %}bg-gradient-to-r from-terracotta to-terracotta/70{% elif cs.risk_level == 'medium' %}bg-gradient-to-r from-amber to-amber/70{% else %}bg-gradient-to-r from-sage to-sage/70{% endif %}"
+                                style="width: {{ [cs.income_percentage * 100, 100]|min }}%"
+                            ></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <!-- Risk threshold markers -->
+                <div class="mt-3 pt-3 border-t border-cream-dark/30 dark:border-neutral-700/50">
+                    <div class="flex items-center justify-between text-[9px] text-slate/60 dark:text-gray-500">
+                        <span>0%</span>
+                        <span class="text-amber-dark dark:text-amber">50%</span>
+                        <span class="text-terracotta font-bold">83%</span>
+                        <span>100%</span>
+                    </div>
+                    <div class="h-1 mt-1 bg-gradient-to-r from-sage via-amber to-terracotta rounded-full opacity-40"></div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Column: Client Table -->
+        <div class="col-span-9 flex flex-col min-h-0">
+            <!-- Table Header -->
+            <div class="flex items-center justify-between mb-3 flex-shrink-0">
+                <h2 class="text-sm font-bold text-charcoal dark:text-white uppercase tracking-wider">
+                    {{ _("client.all_clients") if _ else "Alle Kunden" }}
+                    <span class="ml-2 px-2 py-0.5 bg-cream dark:bg-neutral-700 rounded text-[10px] font-mono text-slate dark:text-gray-400">{{ clients|length }}</span>
+                </h2>
+                <!-- Search -->
+                <div class="relative">
+                    <input
+                        type="search"
+                        placeholder="{{ _('client.search') if _ else 'Suchen...' }}"
+                        hx-get="/clients/search"
+                        hx-trigger="keyup changed delay:300ms"
+                        hx-target="#client-table-body"
+                        hx-swap="innerHTML"
+                        name="query"
+                        class="w-48 pl-8 pr-3 py-1.5 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-forest/20 dark:focus:ring-amber/20"
+                    />
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Table Container with scroll -->
+            <div class="flex-1 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 overflow-hidden min-h-0">
+                <div class="overflow-auto h-full">
+                    <table class="w-full">
+                        <thead class="bg-cream/70 dark:bg-neutral-700/50 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">
+                                    {{ _("client.company") if _ else "Unternehmen" }}
+                                </th>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">
+                                    {{ _("client.contact") if _ else "Kontakt" }}
+                                </th>
+                                <th class="px-4 py-2.5 text-center text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-20">
+                                    {{ _("invoice.invoices_count") if _ else "Rech." }}
+                                </th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">
+                                    {{ _("client.total_invoiced") if _ else "Fakturiert" }}
+                                </th>
+                                <th class="px-4 py-2.5 text-center text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-24">
+                                    {{ _("client.share") if _ else "Anteil" }}
+                                </th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-20">
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="client-table-body" class="divide-y divide-cream-dark/30 dark:divide-neutral-700/50">
+                            {% for cs in clients %}
+                            <tr class="hover:bg-cream/30 dark:hover:bg-neutral-700/20 transition-colors group">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <!-- Country flag -->
+                                        <span class="text-base" title="{{ cs.client.country }}">
+                                            {% if cs.client.country == 'DE' %}🇩🇪{% elif cs.client.country == 'AT' %}🇦🇹{% elif cs.client.country == 'CH' %}🇨🇭{% elif cs.client.country == 'NL' %}🇳🇱{% elif cs.client.country == 'FR' %}🇫🇷{% elif cs.client.country == 'GB' %}🇬🇧{% elif cs.client.country == 'US' %}🇺🇸{% elif cs.client.country == 'SE' %}🇸🇪{% else %}🏳️{% endif %}
+                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-charcoal dark:text-white truncate">{{ cs.client.name }}</p>
+                                            <p class="text-[10px] text-slate dark:text-gray-500 truncate">
+                                                {% if cs.client.city %}{{ cs.client.city }}{% if cs.client.country != 'DE' %}, {{ cs.client.country }}{% endif %}{% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if cs.client.vat_id %}
+                                    <p class="text-[10px] font-mono text-slate dark:text-gray-500 bg-cream/50 dark:bg-neutral-700/50 px-1.5 py-0.5 rounded inline-block">{{ cs.client.vat_id }}</p>
+                                    {% elif cs.client.email %}
+                                    <p class="text-[10px] text-slate dark:text-gray-400 truncate max-w-[150px]">{{ cs.client.email }}</p>
+                                    {% else %}
+                                    <span class="text-[10px] text-slate/40">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 bg-forest/10 dark:bg-forest/20 text-forest dark:text-sage rounded-lg text-xs font-bold">
+                                        {{ cs.invoice_count }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+                                        €{{ "{:,.0f}".format(cs.total_invoiced).replace(",", " ") }}
+                                    </p>
+                                    {% if cs.outstanding > 0 %}
+                                    <p class="text-[10px] font-mono text-amber-dark dark:text-amber">
+                                        €{{ "{:,.0f}".format(cs.outstanding).replace(",", " ") }} {{ _("client.open") if _ else "offen" }}
+                                    </p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="text-xs font-mono font-bold {% if cs.risk_level == 'high' %}text-terracotta{% elif cs.risk_level == 'medium' %}text-amber-dark dark:text-amber{% else %}text-charcoal dark:text-white{% endif %}">
+                                            {{ "%.0f"|format(cs.income_percentage * 100) }}%
+                                        </span>
+                                        <!-- Mini progress bar -->
+                                        <div class="w-12 h-1 bg-cream dark:bg-neutral-600 rounded-full overflow-hidden">
+                                            <div
+                                                class="h-full rounded-full {% if cs.risk_level == 'high' %}bg-terracotta{% elif cs.risk_level == 'medium' %}bg-amber{% else %}bg-sage{% endif %}"
+                                                style="width: {{ [cs.income_percentage * 100, 100]|min }}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            hx-get="/clients/{{ cs.client.id }}/edit"
+                                            hx-target="#client-form-container"
+                                            hx-swap="innerHTML"
+                                            class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                                            title="{{ _('common.edit') if _ else 'Bearbeiten' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            hx-get="/rechnungen?client={{ cs.client.id }}"
+                                            class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                                            title="{{ _('invoice.view_invoices') if _ else 'Rechnungen' }}"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="w-12 h-12 bg-cream dark:bg-neutral-700 rounded-xl flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-slate dark:text-gray-400">{{ _("client.no_clients") if _ else "Noch keine Kunden" }}</p>
+                                        <button
+                                            hx-get="/clients/form"
+                                            hx-target="#client-form-container"
+                                            hx-swap="innerHTML"
+                                            class="mt-1 px-3 py-1.5 bg-forest hover:bg-forest-light text-white text-xs font-medium rounded-lg transition-colors"
+                                        >
+                                            {{ _("client.create_first") if _ else "Ersten Kunden anlegen" }}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

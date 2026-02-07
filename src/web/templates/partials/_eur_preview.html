@@ -1,0 +1,101 @@
+{# Einnahmen-Überschuss-Rechnung (Income Statement) Preview #}
+<div class="space-y-5">
+    <h3 class="font-display text-xl font-semibold text-charcoal dark:text-white">
+        {{ _("report.eur") if _ else "Einnahmen-Überschuss-Rechnung" }} {{ data.year }}
+    </h3>
+
+    {# Business Income Section #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-4">
+        <h4 class="text-xs font-semibold text-charcoal dark:text-white uppercase tracking-wider mb-3">
+            {{ _("report.eur_betriebseinnahmen") if _ else "Betriebseinnahmen" }}
+        </h4>
+        <div class="space-y-2 text-sm pl-2">
+            {# Domestic Revenue (19%) #}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.eur_domestic") if _ else "Umsatzerlöse (19% USt.)" }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.revenue_domestic_net).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+
+            {# Reduced Rate (7%) if any #}
+            {% if data.revenue_reduced_net > 0 %}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.eur_reduced") if _ else "Umsatzerlöse (7% USt.)" }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.revenue_reduced_net).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+            {% endif %}
+
+            {# EU/Third Country (0%) #}
+            {% if data.revenue_eu_net > 0 %}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.eur_eu") if _ else "Erlöse EU/Drittland (0%)" }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.revenue_eu_net).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Total Income #}
+        <div class="flex justify-between font-semibold mt-3 pt-3 border-t border-cream-dark dark:border-neutral-600">
+            <span class="text-charcoal dark:text-white">{{ _("report.eur_sum_income") if _ else "Summe Betriebseinnahmen" }}</span>
+            <span class="font-mono text-sage">{{ "{:,.2f}".format(data.total_einnahmen).replace(",", " ").replace(".", ",") }} €</span>
+        </div>
+    </div>
+
+    {# Business Expenses Section #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-4">
+        <h4 class="text-xs font-semibold text-charcoal dark:text-white uppercase tracking-wider mb-3">
+            {{ _("report.eur_betriebsausgaben") if _ else "Betriebsausgaben" }}
+        </h4>
+        <div class="space-y-2 text-sm pl-2">
+            {% for cat in data.expense_categories %}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("category." + cat.category_key) if _ else cat.category_key|capitalize }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(cat.amount_net).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+            {% endfor %}
+
+            {% if not data.expense_categories %}
+            <div class="py-2 text-slate dark:text-gray-500 italic">
+                {{ _("report.no_expenses") if _ else "Keine Ausgaben im Zeitraum" }}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Total Expenses #}
+        <div class="flex justify-between font-semibold mt-3 pt-3 border-t border-cream-dark dark:border-neutral-600">
+            <span class="text-charcoal dark:text-white">{{ _("report.eur_sum_expenses") if _ else "Summe Betriebsausgaben" }}</span>
+            <span class="font-mono text-terracotta">{{ "{:,.2f}".format(data.total_ausgaben).replace(",", " ").replace(".", ",") }} €</span>
+        </div>
+    </div>
+
+    {# Profit/Loss Result #}
+    <div class="p-4 rounded-xl border-2 {% if data.is_loss %}border-terracotta bg-terracotta/5{% else %}border-forest dark:border-amber bg-forest/5 dark:bg-amber/5{% endif %}">
+        <div class="flex justify-between items-center">
+            <span class="text-lg font-bold text-charcoal dark:text-white">
+                {% if data.is_loss %}
+                    {{ _("report.eur_verlust") if _ else "Verlust" }}
+                {% else %}
+                    {{ _("report.eur_gewinn") if _ else "Gewinn" }}
+                {% endif %}
+            </span>
+            <span class="font-mono text-2xl font-bold {% if data.is_loss %}text-terracotta{% else %}text-forest dark:text-amber{% endif %}">
+                {{ "{:,.2f}".format(data.gewinn|abs).replace(",", " ").replace(".", ",") }} €
+            </span>
+        </div>
+    </div>
+
+    {# Vorsteuer Summary #}
+    {% if data.total_vorsteuer > 0 %}
+    <div class="flex items-center justify-between text-sm text-slate dark:text-gray-500 bg-cream/30 dark:bg-neutral-700/20 rounded-lg px-4 py-2">
+        <span>{{ _("report.eur_vorsteuer_total") if _ else "Vorsteuer aus Betriebsausgaben" }}</span>
+        <span class="font-mono font-medium">{{ "{:,.2f}".format(data.total_vorsteuer).replace(",", " ").replace(".", ",") }} €</span>
+    </div>
+    {% endif %}
+
+    {# Info Note #}
+    <div class="flex items-center gap-2 text-xs text-slate dark:text-gray-500">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ _("report.eur_note") if _ else "Anlage EÜR für die Einkommensteuererklärung (§ 4 Abs. 3 EStG)" }}</span>
+    </div>
+</div>

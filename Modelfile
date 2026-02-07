@@ -1,0 +1,24 @@
+FROM ./fiscfox-q4_k_m.gguf
+
+TEMPLATE """{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{- if .Tools }}<|im_start|>system
+You have access to the following tools:
+{{ range .Tools }}{{ . }}
+{{ end }}
+When you need to call a tool, respond with JSON: {"name": "tool_name", "arguments": {...}}
+After receiving tool results, summarize them for the user.<|im_end|>
+{{ end }}{{- range .Messages }}{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "tool" }}<|im_start|>user
+[Tool Result]: {{ .Content }}<|im_end|>
+{{ end }}{{- end }}<|im_start|>assistant
+{{ .Response }}"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"
+PARAMETER num_ctx 4096

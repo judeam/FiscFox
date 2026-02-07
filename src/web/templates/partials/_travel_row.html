@@ -1,0 +1,38 @@
+<tr id="travel-{{ travel.id }}" class="border-b border-cream-dark dark:border-neutral-700 hover:bg-cream/50 dark:hover:bg-neutral-700/50 transition-colors">
+    <td class="py-3 px-4 font-mono text-sm text-charcoal dark:text-white">
+        {{ travel.date.strftime('%d.%m.%Y') }}
+    </td>
+    <td class="py-3 px-4">
+        <div class="font-medium text-charcoal dark:text-white">{{ travel.destination }}</div>
+        <div class="text-xs text-slate dark:text-gray-400">{{ travel.purpose }}</div>
+    </td>
+    <td class="py-3 px-4 font-mono text-sm text-charcoal dark:text-white">
+        {{ travel.departure_time }} - {{ travel.return_time }}
+        <span class="text-slate dark:text-gray-400">({{ travel.absence_hours }}h)</span>
+    </td>
+    <td class="py-3 px-4 font-mono text-right text-forest dark:text-sage">
+        €{{ "{:,.2f}".format(travel.per_diem_deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 font-mono text-sm text-charcoal dark:text-white text-center">
+        {{ "{:,.0f}".format(travel.km_driven).replace(",", ".") }} km
+    </td>
+    <td class="py-3 px-4 font-mono text-right text-forest dark:text-sage">
+        €{{ "{:,.2f}".format(travel.km_deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 font-mono text-right font-semibold text-charcoal dark:text-white">
+        €{{ "{:,.2f}".format(travel.total_deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 text-right">
+        <button
+            hx-delete="/travel/{{ travel.id }}"
+            hx-target="#travel-{{ travel.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="{{ _('travel.confirm_delete') if _ else 'Reise wirklich löschen?' }}"
+            class="text-slate hover:text-terracotta transition-colors"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    </td>
+</tr>

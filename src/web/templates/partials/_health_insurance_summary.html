@@ -1,0 +1,98 @@
+<div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">
+            {{ _("health_insurance.annual_summary") if _ else "Jahresubersicht" }} {{ year }}
+        </h3>
+        <span class="px-2.5 py-1 bg-forest/10 dark:bg-forest/20 rounded-lg text-xs font-semibold text-forest dark:text-sage">
+            {{ _("health_insurance.for_tax_return") if _ else "Fur Steuererklarung" }}
+        </span>
+    </div>
+
+    <!-- Anlage Vorsorgeaufwand Reference -->
+    <div class="text-xs text-slate dark:text-gray-400 bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3">
+        <p class="font-semibold text-charcoal dark:text-white mb-1">{{ _("health_insurance.anlage_vorsorgeaufwand") if _ else "Anlage Vorsorgeaufwand" }}</p>
+        <p>{{ _("health_insurance.anlage_hint") if _ else "Die folgenden Werte konnen direkt in Ihre Steuererklarung ubernommen werden." }}</p>
+    </div>
+
+    <!-- Deduction Breakdown -->
+    <div class="space-y-3">
+        <!-- Krankenversicherung Basis (Line 16/17) -->
+        <div class="flex items-center justify-between py-2 border-b border-cream-dark/30 dark:border-neutral-700/30">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-forest"></div>
+                <span class="text-sm text-charcoal dark:text-white">
+                    {{ _("health_insurance.krankenversicherung_basis") if _ else "Krankenversicherung (Basisabsicherung)" }}
+                </span>
+            </div>
+            <span class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+                {{ "{:,.2f}".format(deduction.krankenversicherung_basis).replace(",", " ").replace(".", ",") }} EUR
+            </span>
+        </div>
+
+        <!-- Pflegeversicherung (Line 18/19) -->
+        <div class="flex items-center justify-between py-2 border-b border-cream-dark/30 dark:border-neutral-700/30">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-sage"></div>
+                <span class="text-sm text-charcoal dark:text-white">
+                    {{ _("health_insurance.pflegeversicherung") if _ else "Pflegeversicherung" }}
+                </span>
+            </div>
+            <span class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+                {{ "{:,.2f}".format(deduction.pflegeversicherung).replace(",", " ").replace(".", ",") }} EUR
+            </span>
+        </div>
+
+        <!-- Krankengeld Reduction -->
+        {% if deduction.krankengeld_reduction > 0 %}
+        <div class="flex items-center justify-between py-2 border-b border-cream-dark/30 dark:border-neutral-700/30">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                <span class="text-sm text-slate dark:text-gray-400">
+                    {{ _("health_insurance.krankengeld_reduction_label") if _ else "Abzug fur Krankengeld (4%)" }}
+                </span>
+            </div>
+            <span class="font-mono text-sm text-rose-500">
+                -{{ "{:,.2f}".format(deduction.krankengeld_reduction).replace(",", " ").replace(".", ",") }} EUR
+            </span>
+        </div>
+        {% endif %}
+
+        <!-- Wahlleistungen (Line 20/21) -->
+        <div class="flex items-center justify-between py-2 border-b border-cream-dark/30 dark:border-neutral-700/30">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-amber"></div>
+                <span class="text-sm text-charcoal dark:text-white">
+                    {{ _("health_insurance.wahlleistungen_label") if _ else "Wahlleistungen/Zusatzversicherung" }}
+                </span>
+            </div>
+            <div class="text-right">
+                <span class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+                    {{ "{:,.2f}".format(deduction.wahlleistungen_deductible).replace(",", " ").replace(".", ",") }} EUR
+                </span>
+                {% if deduction.wahlleistungen_exceeded > 0 %}
+                <p class="text-[10px] text-rose-500">
+                    {{ _("health_insurance.exceeded_limit") if _ else "Nicht absetzbar" }}: {{ "{:,.2f}".format(deduction.wahlleistungen_exceeded).replace(",", " ").replace(".", ",") }} EUR
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Total Deductible -->
+        <div class="flex items-center justify-between py-3 bg-forest/5 dark:bg-forest/10 rounded-lg px-3">
+            <span class="text-sm font-semibold text-charcoal dark:text-white">
+                {{ _("health_insurance.total_deductible") if _ else "Gesamt absetzbar" }}
+            </span>
+            <span class="font-mono text-lg font-bold text-forest dark:text-sage">
+                {{ "{:,.2f}".format(deduction.total_deductible).replace(",", " ").replace(".", ",") }} EUR
+            </span>
+        </div>
+
+        <!-- Effective Deduction Rate -->
+        <div class="text-center text-xs text-slate dark:text-gray-400">
+            {{ _("health_insurance.effective_rate") if _ else "Effektive Absetzungsrate" }}:
+            <span class="font-mono font-semibold text-charcoal dark:text-white">{{ deduction.effective_deduction_rate }}%</span>
+            {{ _("health_insurance.of_total_paid") if _ else "von" }}
+            <span class="font-mono">{{ "{:,.2f}".format(deduction.total_paid).replace(",", " ").replace(".", ",") }} EUR</span>
+        </div>
+    </div>
+</div>

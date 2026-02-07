@@ -1,0 +1,178 @@
+<form
+    hx-post="/travel/add"
+    hx-target="#travel-list"
+    hx-swap="afterbegin"
+    hx-on::after-request="this.reset(); document.getElementById('travel-form-container').innerHTML = '';"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-amber dark:border-amber/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("travel.new_trip") if _ else "Neue Dienstreise erfassen" }}</h3>
+        <button
+            type="button"
+            onclick="document.getElementById('travel-form-container').innerHTML = ''"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4">
+        <!-- Date -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.date") if _ else "Datum" }}</label>
+            <input
+                type="date"
+                name="date"
+                required
+                value="{{ today }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Destination -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.destination") if _ else "Zielort" }}</label>
+            <input
+                type="text"
+                name="destination"
+                required
+                placeholder="{{ _('travel.destination_placeholder') if _ else 'z.B. München, Berlin' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Country -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.country") if _ else "Land" }}</label>
+            <select
+                name="country_code"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+                {% for code, rate_8, rate_24 in countries %}
+                <option value="{{ code }}" {% if code == 'DE' %}selected{% endif %}>{{ code }} (€{{ rate_8 }}/€{{ rate_24 }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Purpose -->
+        <div class="col-span-3 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.purpose") if _ else "Reisezweck" }}</label>
+            <input
+                type="text"
+                name="purpose"
+                required
+                placeholder="{{ _('travel.purpose_placeholder') if _ else 'z.B. Kundentermin, Konferenz' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Departure Time -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.departure") if _ else "Abfahrt" }}</label>
+            <input
+                type="time"
+                name="departure_time"
+                required
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Return Time -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.return") if _ else "Rückkehr" }}</label>
+            <input
+                type="time"
+                name="return_time"
+                required
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Absence Hours -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.hours") if _ else "Abwesenheit (Std)" }}</label>
+            <input
+                type="number"
+                name="absence_hours"
+                step="0.5"
+                min="0"
+                required
+                placeholder="8"
+                hx-post="/travel/preview/per-diem"
+                hx-trigger="change delay:500ms"
+                hx-target="#per-diem-preview"
+                hx-include="[name='country_code'], [name='is_overnight'], [name='is_travel_day'], [name='breakfast_provided'], [name='lunch_provided'], [name='dinner_provided']"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- KM Driven -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("travel.km") if _ else "Kilometer" }}</label>
+            <input
+                type="number"
+                name="km_driven"
+                step="0.1"
+                min="0"
+                value="0"
+                placeholder="0"
+                hx-post="/travel/preview/km"
+                hx-trigger="change delay:500ms"
+                hx-target="#km-preview"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Travel Type Toggles -->
+        <div class="col-span-2 flex items-center gap-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="is_overnight" class="w-4 h-4 rounded text-amber focus:ring-amber">
+                <span class="text-sm text-charcoal dark:text-white">{{ _("travel.overnight") if _ else "Mit Übernachtung" }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="is_travel_day" class="w-4 h-4 rounded text-amber focus:ring-amber">
+                <span class="text-sm text-charcoal dark:text-white">{{ _("travel.travel_day") if _ else "An-/Abreisetag" }}</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Meal Provisions -->
+    <div class="border-t border-cream-dark dark:border-neutral-700 pt-4">
+        <p class="text-sm font-medium text-slate dark:text-gray-400 mb-3">{{ _("travel.meals_provided") if _ else "Bereitgestellte Mahlzeiten (für Kürzung)" }}</p>
+        <div class="flex items-center gap-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="breakfast_provided" class="w-4 h-4 rounded text-amber focus:ring-amber">
+                <span class="text-sm text-charcoal dark:text-white">{{ _("travel.breakfast") if _ else "Frühstück" }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="lunch_provided" class="w-4 h-4 rounded text-amber focus:ring-amber">
+                <span class="text-sm text-charcoal dark:text-white">{{ _("travel.lunch") if _ else "Mittagessen" }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="dinner_provided" class="w-4 h-4 rounded text-amber focus:ring-amber">
+                <span class="text-sm text-charcoal dark:text-white">{{ _("travel.dinner") if _ else "Abendessen" }}</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Preview Sections -->
+    <div class="grid grid-cols-2 gap-4">
+        <div id="per-diem-preview" class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("travel.per_diem_preview") if _ else "Verpflegungsmehraufwand" }}</p>
+            <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">--</p>
+        </div>
+        <div id="km-preview" class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("travel.km_preview") if _ else "Fahrtkosten" }}</p>
+            <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">--</p>
+        </div>
+    </div>
+
+    <button
+        type="submit"
+        class="w-full py-3 bg-amber hover:bg-amber-dark text-forest font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+    >
+        {{ _("travel.save") if _ else "Reise speichern" }}
+    </button>
+</form>

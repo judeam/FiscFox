@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FiscFox
+GenericName=Tax Management
+Comment=German Freelance Tax Management System
+Exec=fiscfox
+Icon=fiscfox
+Terminal=false
+Categories=Office;Finance;
+Keywords=tax;freelance;germany;invoice;expense;
+StartupWMClass=FiscFox
+MimeType=application/x-fiscfox;

@@ -1,0 +1,114 @@
+{# Professional Invoice Template - Matches report.py Zervant style #}
+<div class="invoice-template professional bg-white text-black print:shadow-none" style="width: 210mm; min-height: 297mm; padding: 20mm; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; position: relative;">
+
+    <!-- Sender Info (Small) -->
+    <div class="text-xs text-gray-600 mb-4" style="font-size: 8pt; line-height: 1.4;">
+        <p>{{ sender.name }}</p>
+        <p>{{ sender.street }}</p>
+        <p>{{ sender.details }} &bull; {{ sender.zip }} &bull; {{ sender.city }} &bull; {{ sender.country }}</p>
+    </div>
+
+    <!-- Two Column Layout: Recipient + Meta -->
+    <div class="flex justify-between mb-8">
+        <!-- Recipient Address -->
+        <div style="width: 50%;">
+            <p class="font-bold" style="font-size: 9pt;">{{ invoice.client }}</p>
+            {% for line in client_address %}
+            <p style="font-size: 9pt;">{{ line }}</p>
+            {% endfor %}
+        </div>
+
+        <!-- Invoice Metadata -->
+        <div style="width: 40%;">
+            <table style="font-size: 9pt; width: 100%;">
+                <tr>
+                    <td class="font-bold pr-4">Invoice number:</td>
+                    <td>{{ invoice.invoice_number }}</td>
+                </tr>
+                <tr>
+                    <td class="font-bold pr-4">Invoice date:</td>
+                    <td>{{ invoice.date.strftime('%d.%m.%Y') }}</td>
+                </tr>
+                <tr>
+                    <td class="font-bold pr-4">Payment terms:</td>
+                    <td>14 days</td>
+                </tr>
+                <tr>
+                    <td class="font-bold pr-4">Due date:</td>
+                    <td>{{ invoice.due_date.strftime('%d.%m.%Y') if invoice.due_date else '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="font-bold pr-4">VAT number:</td>
+                    <td>{{ sender.vat_id }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Invoice Title -->
+    <h1 class="text-2xl font-bold mb-6" style="font-size: 18pt;">INVOICE</h1>
+
+    <!-- Legal Note (Reverse Charge) -->
+    {% if invoice.vat_rate.value == '0.00' %}
+    <p class="text-sm mb-4" style="font-size: 9pt; line-height: 1.4;">
+        Nicht im Inland steuerbare Leistung. Steuerschuldnerschaft des Leistungsempfängers (Reverse-Charge-Verfahren) gemäß § 13b UStG.<br/>
+        <em>VAT liability of the recipient (Reverse Charge).</em>
+    </p>
+    {% endif %}
+
+    <!-- Items Table -->
+    <table class="w-full mb-4" style="font-size: 9pt; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #E6E6E6;">
+                <th class="text-left p-2 font-bold" style="width: 40%;">Description</th>
+                <th class="text-left p-2 font-bold" style="width: 12%;">Date</th>
+                <th class="text-right p-2 font-bold" style="width: 8%;">Qty</th>
+                <th class="text-center p-2 font-bold" style="width: 8%;">Unit</th>
+                <th class="text-right p-2 font-bold" style="width: 12%;">Unit price</th>
+                <th class="text-right p-2 font-bold" style="width: 8%;">VAT %</th>
+                <th class="text-right p-2 font-bold" style="width: 12%;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr class="align-top">
+                <td class="p-2">{{ item.description }}</td>
+                <td class="p-2">{{ item.service_date.strftime('%d.%m.%Y') if item.service_date else invoice.date.strftime('%d.%m.%Y') }}</td>
+                <td class="p-2 text-right">{{ item.quantity }}</td>
+                <td class="p-2 text-center">{{ item.unit }}</td>
+                <td class="p-2 text-right">€{{ "{:,.2f}".format(item.unit_price).replace(",", " ").replace(".", ",") }}</td>
+                <td class="p-2 text-right">{{ (invoice.vat_rate.value | float * 100) | int }}.00%</td>
+                <td class="p-2 text-right">€{{ "{:,.2f}".format(item.total).replace(",", " ").replace(".", ",") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="flex justify-end mb-8">
+        <table style="font-size: 9pt; width: 40%;">
+            <tr>
+                <td class="text-right font-bold p-1">Total excl. VAT</td>
+                <td class="text-right p-1" style="width: 30%;">€{{ "{:,.2f}".format(invoice.amount_net).replace(",", " ").replace(".", ",") }}</td>
+            </tr>
+            <tr>
+                <td class="text-right font-bold p-1">VAT {{ (invoice.vat_rate.value | float * 100) | int }}.00%</td>
+                <td class="text-right p-1">€{{ "{:,.2f}".format(invoice.vat_amount).replace(",", " ").replace(".", ",") }}</td>
+            </tr>
+            <tr style="border-top: 1px solid black;">
+                <td class="text-right font-bold p-2" style="font-size: 10pt;">Total amount due</td>
+                <td class="text-right font-bold p-2" style="font-size: 10pt;">€{{ "{:,.2f}".format(invoice.amount).replace(",", " ").replace(".", ",") }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="absolute bottom-0 left-0 right-0 px-8 pb-6" style="bottom: 15mm;">
+        <hr class="border-black mb-2">
+        <div class="text-center text-xs" style="font-size: 8pt; line-height: 1.6;">
+            <p><strong>Address</strong> {{ sender.street }} {{ sender.details }} &bull; {{ sender.zip }} &bull; {{ sender.city }} &bull; {{ sender.country }} &nbsp;&nbsp;&nbsp;&nbsp; <strong>VAT number</strong> (Ust.ID) {{ sender.vat_id }}</p>
+            <p><strong>E-mail</strong> {{ sender.email }} &nbsp;&nbsp;&nbsp; <strong>Tel.</strong> {{ sender.phone }} &nbsp;&nbsp;&nbsp; <strong>Bank</strong> {{ sender.bank }} &nbsp;&nbsp;&nbsp; <strong>SWIFT/BIC</strong> {{ sender.swift }}</p>
+            <p><strong>IBAN</strong> {{ sender.iban }} &nbsp;&nbsp;&nbsp; <strong>Account holder</strong> {{ sender.name }}</p>
+        </div>
+    </div>
+</div>

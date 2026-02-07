@@ -1,0 +1,67 @@
+<!-- AI SQL Query Result Partial -->
+<!-- Displays Text-to-SQL query results -->
+
+<div class="flex gap-3">
+    <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+        </svg>
+    </div>
+    <div class="flex-1 bg-cream dark:bg-neutral-700 rounded-xl rounded-tl-none p-4 overflow-hidden">
+        <!-- Natural Language Answer -->
+        {% if formatted_answer %}
+        <p class="text-sm text-charcoal dark:text-white font-medium mb-3">
+            {{ formatted_answer }}
+        </p>
+        {% endif %}
+
+        <!-- Results Table -->
+        {% if rows %}
+        <div class="overflow-x-auto rounded-lg border border-cream-dark dark:border-neutral-600">
+            <table class="w-full text-sm">
+                <thead class="bg-slate/5 dark:bg-neutral-800">
+                    <tr>
+                        {% for col in columns %}
+                        <th class="px-3 py-2 text-left text-xs font-medium text-slate dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            {{ col }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-cream-dark dark:divide-neutral-600">
+                    {% for row in rows %}
+                    <tr class="hover:bg-slate/5 dark:hover:bg-neutral-750">
+                        {% for col in columns %}
+                        <td class="px-3 py-2 text-charcoal dark:text-white whitespace-nowrap">
+                            {% if row[col] is string and '€' in row[col] %}
+                            <span class="font-mono">{{ row[col] }}</span>
+                            {% else %}
+                            {{ row[col] }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center justify-between mt-3 text-xs text-slate/70 dark:text-gray-500">
+            <span>{{ row_count }} {% if row_count == 1 %}{{ _("ai.sql.row") }}{% else %}{{ _("ai.sql.rows") }}{% endif %}</span>
+            <span>{{ "%.0f" | format(execution_time_ms) }}ms</span>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate dark:text-gray-400 italic">
+            {{ _("ai.sql.no_results") }}
+        </p>
+        {% endif %}
+
+        <!-- Show SQL Query (collapsed by default) -->
+        <details class="mt-3">
+            <summary class="text-xs text-slate/70 dark:text-gray-500 cursor-pointer hover:text-slate dark:hover:text-gray-400">
+                {{ _("ai.sql.show_query") }}
+            </summary>
+            <pre class="mt-2 p-2 bg-slate/10 dark:bg-neutral-800 rounded text-xs font-mono text-charcoal dark:text-white overflow-x-auto"><code>{{ query }}</code></pre>
+        </details>
+    </div>
+</div>

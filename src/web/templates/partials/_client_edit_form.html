@@ -1,0 +1,154 @@
+<tr id="client-{{ client.id }}" class="bg-cream/50 dark:bg-neutral-700/50">
+    <td colspan="4" class="p-4">
+        <form
+            hx-put="/clients/{{ client.id }}"
+            hx-target="#client-{{ client.id }}"
+            hx-swap="outerHTML"
+            class="space-y-3"
+        >
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold text-charcoal dark:text-white">{{ _("client.edit") if _ else "Kunde bearbeiten" }}</h4>
+                <button
+                    type="button"
+                    hx-get="/clients"
+                    hx-target="#client-table-body"
+                    hx-swap="innerHTML"
+                    class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3">
+                <!-- Name -->
+                <div class="col-span-2">
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.name") if _ else "Name" }} *</label>
+                    <input
+                        type="text"
+                        name="name"
+                        required
+                        value="{{ client.name }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Street -->
+                <div class="col-span-2">
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.street") if _ else "Straße" }}</label>
+                    <input
+                        type="text"
+                        name="street"
+                        value="{{ client.street }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- ZIP -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.zip_code") if _ else "PLZ" }}</label>
+                    <input
+                        type="text"
+                        name="zip_code"
+                        value="{{ client.zip_code }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- City -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.city") if _ else "Stadt" }}</label>
+                    <input
+                        type="text"
+                        name="city"
+                        value="{{ client.city }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Country -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.country") if _ else "Land" }}</label>
+                    <select
+                        name="country"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                        <option value="DE" {% if client.country == 'DE' %}selected{% endif %}>{{ _("country.DE") if _ else "Deutschland" }} (DE)</option>
+                        <option value="AT" {% if client.country == 'AT' %}selected{% endif %}>{{ _("country.AT") if _ else "Österreich" }} (AT)</option>
+                        <option value="CH" {% if client.country == 'CH' %}selected{% endif %}>{{ _("country.CH") if _ else "Schweiz" }} (CH)</option>
+                        <option value="US" {% if client.country == 'US' %}selected{% endif %}>{{ _("country.US") if _ else "USA" }} (US)</option>
+                        <option value="GB" {% if client.country == 'GB' %}selected{% endif %}>{{ _("country.GB") if _ else "Großbritannien" }} (GB)</option>
+                        <option value="FR" {% if client.country == 'FR' %}selected{% endif %}>{{ _("country.FR") if _ else "Frankreich" }} (FR)</option>
+                        <option value="NL" {% if client.country == 'NL' %}selected{% endif %}>{{ _("country.NL") if _ else "Niederlande" }} (NL)</option>
+                        <option value="SE" {% if client.country == 'SE' %}selected{% endif %}>{{ _("country.SE") if _ else "Schweden" }} (SE)</option>
+                        <option value="IT" {% if client.country == 'IT' %}selected{% endif %}>{{ _("country.IT") if _ else "Italien" }} (IT)</option>
+                        <option value="ES" {% if client.country == 'ES' %}selected{% endif %}>{{ _("country.ES") if _ else "Spanien" }} (ES)</option>
+                    </select>
+                </div>
+
+                <!-- VAT ID -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.vat_id") if _ else "USt-IdNr." }}</label>
+                    <input
+                        type="text"
+                        name="vat_id"
+                        value="{{ client.vat_id }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.email") if _ else "E-Mail" }}</label>
+                    <input
+                        type="email"
+                        name="email"
+                        value="{{ client.email }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.phone") if _ else "Telefon" }}</label>
+                    <input
+                        type="tel"
+                        name="phone"
+                        value="{{ client.phone }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Address Details -->
+                <div>
+                    <label class="text-xs font-medium text-slate dark:text-gray-400">{{ _("client.address_details") if _ else "Adresszusatz" }}</label>
+                    <input
+                        type="text"
+                        name="address_details"
+                        value="{{ client.address_details }}"
+                        class="w-full px-3 py-2 text-sm bg-white dark:bg-neutral-800 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                    >
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button
+                    type="button"
+                    hx-get="/clients"
+                    hx-target="#client-table-body"
+                    hx-swap="innerHTML"
+                    class="px-3 py-1.5 text-sm text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+                >
+                    {{ _("action.cancel") if _ else "Abbrechen" }}
+                </button>
+                <button
+                    type="submit"
+                    class="px-4 py-1.5 text-sm bg-forest hover:bg-forest-dark text-white font-medium rounded-lg transition-colors"
+                >
+                    {{ _("action.save") if _ else "Speichern" }}
+                </button>
+            </div>
+        </form>
+    </td>
+</tr>

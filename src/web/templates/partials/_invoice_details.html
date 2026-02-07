@@ -1,0 +1,287 @@
+<!-- Invoice Details Modal/Card -->
+<div class="fixed inset-0 bg-charcoal/50 dark:bg-black/70 flex items-center justify-center z-50 p-4" onclick="if(event.target === this) this.remove()">
+    <div class="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden animate-[fadeSlideUp_0.3s_ease-out] max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="bg-forest dark:bg-forest-light p-6 text-white flex-shrink-0">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-white/70 text-sm font-medium uppercase tracking-wider">Rechnung</p>
+                    <h2 class="font-display text-2xl font-semibold mt-1">{{ invoice.invoice_number }}</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if pdf_path %}
+                    <a
+                        href="/invoices/{{ invoice.id }}/pdf"
+                        target="_blank"
+                        class="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                        title="PDF anzeigen"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v6m-3-3h6"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    <button onclick="printInvoice()" class="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Drucken">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                    </button>
+                    <button onclick="this.closest('.fixed').remove()" class="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content (scrollable) -->
+        <div id="invoice-print-content" class="p-6 space-y-6 overflow-y-auto flex-1">
+            <!-- Client Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-forest/10 dark:bg-amber/10 rounded-full flex items-center justify-center text-lg font-semibold text-forest dark:text-amber print:bg-gray-100">
+                    {{ invoice.client[:2]|upper }}
+                </div>
+                <div>
+                    <h3 class="font-semibold text-charcoal dark:text-white">{{ invoice.client }}</h3>
+                    <p class="text-sm text-slate dark:text-gray-400">Kunde</p>
+                </div>
+            </div>
+
+            <!-- Details Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-cream dark:bg-neutral-700/50 rounded-lg p-4 print:bg-gray-50 print:border print:border-gray-200">
+                    <p class="text-sm text-slate dark:text-gray-400">Rechnungsdatum</p>
+                    <p class="font-mono font-semibold text-charcoal dark:text-white mt-1">{{ invoice.date.strftime('%d.%m.%Y') }}</p>
+                </div>
+                <div class="bg-cream dark:bg-neutral-700/50 rounded-lg p-4 print:bg-gray-50 print:border print:border-gray-200">
+                    <p class="text-sm text-slate dark:text-gray-400">Fälligkeitsdatum</p>
+                    <p class="font-mono font-semibold text-charcoal dark:text-white mt-1">
+                        {% if invoice.due_date %}
+                        {{ invoice.due_date.strftime('%d.%m.%Y') }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Line Items (if available) -->
+            {% if line_items and line_items|length > 0 %}
+            <div>
+                <p class="text-sm text-slate dark:text-gray-400 mb-3">Positionen</p>
+                <div class="border border-cream-dark dark:border-neutral-700 rounded-lg overflow-hidden print:border-gray-300">
+                    <table class="w-full text-sm">
+                        <thead class="bg-cream-dark/50 dark:bg-neutral-700/50 print:bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate dark:text-gray-400 uppercase">Beschreibung</th>
+                                <th class="px-3 py-2 text-center text-xs font-semibold text-slate dark:text-gray-400 uppercase w-16">Menge</th>
+                                <th class="px-3 py-2 text-right text-xs font-semibold text-slate dark:text-gray-400 uppercase w-24">Einzelpreis</th>
+                                <th class="px-3 py-2 text-right text-xs font-semibold text-slate dark:text-gray-400 uppercase w-24">Gesamt</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-cream-dark dark:divide-neutral-700 print:divide-gray-200">
+                            {% for item in line_items %}
+                            <tr>
+                                <td class="px-3 py-2 text-charcoal dark:text-white">
+                                    {{ item.description or item.get('description', '—') }}
+                                    {% if item.service_date or item.get('service_date') %}
+                                    <span class="text-xs text-slate dark:text-gray-500 ml-1">({{ item.service_date or item.get('service_date') }})</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-center text-charcoal dark:text-white font-mono">
+                                    {{ item.quantity or item.get('quantity', 1) }} {{ item.unit or item.get('unit', '') }}
+                                </td>
+                                <td class="px-3 py-2 text-right text-charcoal dark:text-white font-mono">
+                                    {% if item.unit_price or item.get('unit_price') %}
+                                    €{{ "{:,.2f}".format(item.unit_price|float if item.unit_price else item.get('unit_price', 0)|float).replace(",", " ").replace(".", ",") }}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-right text-charcoal dark:text-white font-mono font-medium">
+                                    {% if item.total or item.get('total') %}
+                                    €{{ "{:,.2f}".format(item.total|float if item.total else item.get('total', 0)|float).replace(",", " ").replace(".", ",") }}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <!-- Description (fallback if no line items) -->
+            <div>
+                <p class="text-sm text-slate dark:text-gray-400 mb-2">Leistungsbeschreibung</p>
+                <p class="text-charcoal dark:text-white">{{ invoice.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Amount Summary -->
+            <div class="bg-forest/5 dark:bg-amber/5 rounded-xl p-4 space-y-2 print:bg-gray-50 print:border print:border-gray-200">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate dark:text-gray-400">Nettobetrag</span>
+                    <span class="font-mono text-charcoal dark:text-white">€{{ "{:,.2f}".format(invoice.amount_net).replace(",", " ").replace(".", ",") }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate dark:text-gray-400">USt. ({{ (invoice.vat_rate.value | float * 100) | int }}%)</span>
+                    <span class="font-mono text-charcoal dark:text-white">€{{ "{:,.2f}".format(invoice.vat_amount).replace(",", " ").replace(".", ",") }}</span>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-forest/10 dark:border-amber/10 print:border-gray-300">
+                    <span class="font-medium text-charcoal dark:text-white">Gesamtbetrag</span>
+                    <span class="font-mono text-2xl font-bold text-forest dark:text-amber">€{{ "{:,.2f}".format(invoice.amount).replace(",", " ").replace(".", ",") }}</span>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="flex items-center justify-between pt-4 border-t border-cream-dark dark:border-neutral-700 print:border-gray-200">
+                <span class="text-sm text-slate dark:text-gray-400">Status</span>
+                {% if invoice.status.value == 'paid' %}
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-sage/10 text-sage print:bg-green-100 print:text-green-800">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Bezahlt{% if invoice.paid_date %} am {{ invoice.paid_date.strftime('%d.%m.%Y') }}{% endif %}
+                </span>
+                {% elif invoice.status.value == 'pending' %}
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-amber/10 text-amber-dark dark:text-amber print:bg-yellow-100 print:text-yellow-800">
+                    <span class="w-2 h-2 rounded-full bg-amber print:bg-yellow-500"></span>
+                    Offen
+                </span>
+                {% elif invoice.status.value == 'overdue' %}
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-terracotta/10 text-terracotta print:bg-red-100 print:text-red-800">
+                    <span class="w-2 h-2 rounded-full bg-terracotta print:bg-red-500 animate-pulse print:animate-none"></span>
+                    Überfällig
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions (hidden in print) -->
+        <div class="px-6 py-4 bg-cream-dark/30 dark:bg-neutral-900/50 flex gap-3 justify-between flex-shrink-0 print:hidden">
+            <button
+                hx-delete="/invoices/{{ invoice.id }}"
+                hx-confirm="Rechnung wirklich löschen?"
+                hx-target="#invoice-{{ invoice.id }}"
+                hx-swap="outerHTML"
+                onclick="this.closest('.fixed').remove()"
+                class="px-4 py-2 bg-terracotta/10 hover:bg-terracotta/20 text-terracotta text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Löschen
+            </button>
+            <div class="flex gap-3">
+                {% if pdf_path %}
+                <a
+                    href="/invoices/{{ invoice.id }}/pdf"
+                    target="_blank"
+                    class="px-4 py-2 bg-forest/10 hover:bg-forest/20 text-forest dark:text-forest-light text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    PDF anzeigen
+                </a>
+                {% endif %}
+                {% if invoice.status.value == 'pending' or invoice.status.value == 'overdue' %}
+                <button
+                    hx-post="/invoices/{{ invoice.id }}/mark-paid"
+                    hx-target="#invoice-{{ invoice.id }}"
+                    hx-swap="outerHTML"
+                    onclick="this.closest('.fixed').remove()"
+                    class="px-4 py-2 bg-sage hover:bg-sage/80 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Als bezahlt markieren
+                </button>
+                {% endif %}
+                <button
+                    onclick="this.closest('.fixed').remove()"
+                    class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white text-sm font-medium transition-colors"
+                >
+                    Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function printInvoice() {
+    // Create a new window for printing
+    const printContent = document.getElementById('invoice-print-content').innerHTML;
+    const printWindow = window.open('', '_blank');
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Rechnung {{ invoice.invoice_number }}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    padding: 2rem;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }
+                .header {
+                    border-bottom: 2px solid #1a3a2f;
+                    padding-bottom: 1rem;
+                    margin-bottom: 1.5rem;
+                }
+                .header h1 { font-size: 1.5rem; color: #1a3a2f; }
+                .header p { color: #666; margin-top: 0.25rem; }
+                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+                .grid > div { background: #f8f8f8; padding: 1rem; border-radius: 0.5rem; }
+                .grid label { font-size: 0.75rem; color: #666; text-transform: uppercase; }
+                .grid p { font-weight: 600; margin-top: 0.25rem; font-family: monospace; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+                th { background: #f8f8f8; text-align: left; padding: 0.75rem; font-size: 0.75rem; text-transform: uppercase; color: #666; }
+                td { padding: 0.75rem; border-bottom: 1px solid #eee; }
+                .text-right { text-align: right; }
+                .text-center { text-align: center; }
+                .font-mono { font-family: monospace; }
+                .summary { background: #f0f7f4; padding: 1rem; border-radius: 0.5rem; }
+                .summary-row { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+                .summary-total { border-top: 1px solid #ccc; padding-top: 0.5rem; margin-top: 0.5rem; font-weight: bold; }
+                .summary-total .amount { font-size: 1.25rem; color: #1a3a2f; }
+                .status { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+                .status-badge { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem; }
+                .status-paid { background: #d4edda; color: #155724; }
+                .status-pending { background: #fff3cd; color: #856404; }
+                .status-overdue { background: #f8d7da; color: #721c24; }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Rechnung {{ invoice.invoice_number }}</h1>
+                <p>{{ invoice.client }}</p>
+            </div>
+            ${printContent}
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    // Wait for content to load then print
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+</script>

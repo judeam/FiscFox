@@ -1,0 +1,128 @@
+{# Client stats card for top clients display #}
+{# Expects: cs (ClientStats object) #}
+
+<div class="group relative bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden">
+
+    <!-- Risk indicator stripe -->
+    <div class="absolute top-0 left-0 right-0 h-1 {% if cs.risk_level == 'high' %}bg-terracotta{% elif cs.risk_level == 'medium' %}bg-amber{% else %}bg-sage{% endif %}"></div>
+
+    <!-- Header: Name + Country -->
+    <div class="flex items-start justify-between mb-4">
+        <div class="flex items-center gap-2 min-w-0">
+            <!-- Country flag -->
+            <span class="text-lg flex-shrink-0" title="{{ cs.client.country }}">
+                {% if cs.client.country == 'DE' %}🇩🇪{% elif cs.client.country == 'AT' %}🇦🇹{% elif cs.client.country == 'CH' %}🇨🇭{% elif cs.client.country == 'NL' %}🇳🇱{% elif cs.client.country == 'FR' %}🇫🇷{% elif cs.client.country == 'GB' %}🇬🇧{% elif cs.client.country == 'US' %}🇺🇸{% elif cs.client.country == 'SE' %}🇸🇪{% else %}🏳️{% endif %}
+            </span>
+            <div class="min-w-0">
+                <h3 class="font-medium text-charcoal dark:text-white truncate" title="{{ cs.client.name }}">
+                    {{ cs.client.name }}
+                </h3>
+                <p class="text-xs text-slate dark:text-gray-400 truncate">
+                    {% if cs.client.city %}{{ cs.client.city }}{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Risk badge -->
+        {% if cs.is_scheinselbstaendig_risk %}
+        <span class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-terracotta/10 text-terracotta text-xs font-medium rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>
+            >83%
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- VAT ID if present -->
+    {% if cs.client.vat_id %}
+    <p class="text-xs font-mono text-slate dark:text-gray-500 mb-3 bg-cream dark:bg-neutral-700/50 px-2 py-1 rounded inline-block">
+        {{ cs.client.vat_id }}
+    </p>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("invoice.invoices_count") if _ else "Rechnungen" }}</p>
+            <p class="font-mono text-sm font-medium text-charcoal dark:text-white">
+                {{ cs.invoice_count }}
+                <span class="text-sage text-xs">({{ cs.paid_invoice_count }} {{ _("status.paid") if _ else "bezahlt" }})</span>
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("client.total_invoiced") if _ else "Fakturiert" }}</p>
+            <p class="font-mono text-sm font-medium text-charcoal dark:text-white">
+                €{{ "{:,.0f}".format(cs.total_invoiced).replace(",", ".") }}
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("status.paid") if _ else "Bezahlt" }}</p>
+            <p class="font-mono text-sm font-medium text-sage">
+                €{{ "{:,.0f}".format(cs.total_paid).replace(",", ".") }}
+            </p>
+        </div>
+        <div>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("client.outstanding") if _ else "Offen" }}</p>
+            <p class="font-mono text-sm font-medium {% if cs.outstanding > 0 %}text-amber-dark dark:text-amber{% else %}text-slate{% endif %}">
+                €{{ "{:,.0f}".format(cs.outstanding).replace(",", ".") }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Income Percentage Bar -->
+    <div class="space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs text-slate dark:text-gray-400">{{ _("client.income_share") if _ else "Einkommensanteil" }}</span>
+            <span class="text-sm font-mono font-semibold {% if cs.risk_level == 'high' %}text-terracotta{% elif cs.risk_level == 'medium' %}text-amber-dark dark:text-amber{% else %}text-sage{% endif %}">
+                {{ "%.1f"|format(cs.income_percentage * 100) }}%
+            </span>
+        </div>
+
+        <!-- Progress bar with threshold markers -->
+        <div class="relative">
+            <div class="h-2.5 bg-gray-200 dark:bg-neutral-600 rounded-full overflow-hidden">
+                <div
+                    class="h-full rounded-full transition-all duration-500 {% if cs.risk_level == 'high' %}bg-gradient-to-r from-terracotta to-terracotta-dark{% elif cs.risk_level == 'medium' %}bg-gradient-to-r from-amber to-amber-dark{% else %}bg-gradient-to-r from-sage to-sage-dark{% endif %}"
+                    style="width: {{ [cs.income_percentage * 100, 100]|min }}%"
+                ></div>
+            </div>
+
+            <!-- 83% threshold marker -->
+            <div class="absolute top-0 bottom-0 left-[83%] w-px bg-terracotta/50 dark:bg-terracotta/70" title="83% {{ _('client.threshold') if _ else 'Grenzwert' }}"></div>
+
+            <!-- 50% marker -->
+            <div class="absolute top-0 bottom-0 left-1/2 w-px bg-slate/20 dark:bg-gray-500/30"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex justify-between text-[10px] text-slate/60 dark:text-gray-500 px-0.5">
+            <span>0%</span>
+            <span>50%</span>
+            <span class="text-terracotta/70">83%</span>
+            <span>100%</span>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center gap-2 mt-4 pt-3 border-t border-cream-dark dark:border-neutral-700">
+        <button
+            hx-get="/clients/{{ cs.client.id }}/edit"
+            hx-target="#client-form-container"
+            hx-swap="innerHTML"
+            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate hover:text-forest dark:hover:text-amber bg-cream dark:bg-neutral-700 hover:bg-forest/10 dark:hover:bg-amber/10 rounded-lg transition-colors"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            {{ _("common.edit") if _ else "Bearbeiten" }}
+        </button>
+        <a
+            href="/rechnungen?client={{ cs.client.id }}"
+            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-forest dark:text-amber bg-forest/10 dark:bg-amber/10 hover:bg-forest/20 dark:hover:bg-amber/20 rounded-lg transition-colors"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            {{ _("invoice.title") if _ else "Rechnungen" }}
+        </a>
+    </div>
+</div>

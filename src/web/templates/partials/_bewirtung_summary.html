@@ -1,0 +1,49 @@
+<div class="space-y-4">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("bewirtung.total_spent") if _ else "Ausgaben Gesamt" }}</p>
+            <p class="font-mono text-xl font-bold text-charcoal dark:text-white">
+                €{{ "{:,.2f}".format(totals.total_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("bewirtung.deductible") if _ else "Abzugsfähig" }}</p>
+            <p class="font-mono text-xl font-bold text-forest dark:text-sage">
+                €{{ "{:,.2f}".format(totals.deductible_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("bewirtung.meal_count") if _ else "Anzahl Bewirtungen" }}</p>
+            <p class="font-mono text-xl font-bold text-charcoal dark:text-white">
+                {{ totals.internal_count + totals.external_count }}
+                <span class="text-sm font-normal text-slate dark:text-gray-400">
+                    ({{ totals.external_count }} {{ _("bewirtung.external") if _ else "extern" }}, {{ totals.internal_count }} {{ _("bewirtung.internal") if _ else "intern" }})
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+        <h4 class="font-medium text-charcoal dark:text-white mb-4">{{ _("bewirtung.monthly_breakdown") if _ else "Monatliche Übersicht" }}</h4>
+        <div class="space-y-2">
+            {% for month_key, data in monthly.items() %}
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-charcoal dark:text-white">{{ month_key }}</span>
+                <div class="flex items-center gap-4">
+                    <span class="text-slate dark:text-gray-400">{{ data.meal_count }} Bewirtungen</span>
+                    <span class="font-mono text-forest dark:text-sage">
+                        €{{ "{:,.2f}".format(data.deductible_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Deduction Rate Info -->
+    <div class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3 text-sm text-slate dark:text-gray-400">
+        <p>{{ _("bewirtung.rate_info") if _ else "Externe Bewirtung: 70% abzugsfähig | Interne Veranstaltung: 100% bis max €110/Person" }}</p>
+    </div>
+</div>

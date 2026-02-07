@@ -1,0 +1,39 @@
+<tr id="homeoffice-day-{{ day.id }}" class="border-b border-cream-dark dark:border-neutral-700 hover:bg-cream/50 dark:hover:bg-neutral-700/50 transition-colors">
+    <td class="py-3 px-4 font-mono text-sm text-charcoal dark:text-white">
+        {{ day.date.strftime('%d.%m.%Y') }}
+    </td>
+    <td class="py-3 px-4 text-charcoal dark:text-white">
+        {{ day.date.strftime('%A') }}
+    </td>
+    <td class="py-3 px-4 text-slate dark:text-gray-400 text-sm">
+        {{ day.notes if day.notes else '-' }}
+    </td>
+    <td class="py-3 px-4 font-mono text-right text-forest dark:text-sage">
+        €{{ "{:,.2f}".format(day.amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 text-right">
+        <button
+            hx-delete="/homeoffice/days/{{ day.id }}"
+            hx-target="#homeoffice-day-{{ day.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="{{ _('homeoffice.confirm_delete') if _ else 'Tag wirklich löschen?' }}"
+            class="text-slate hover:text-terracotta transition-colors"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    </td>
+</tr>
+{% if warning %}
+<tr class="bg-amber/10 dark:bg-amber/5">
+    <td colspan="5" class="py-2 px-4 text-sm">
+        <div class="flex items-center gap-2 text-amber-dark dark:text-amber">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            {{ _("homeoffice.limit_reached") if _ else "Achtung: Höchstgrenze von 210 Tagen erreicht!" }}
+        </div>
+    </td>
+</tr>
+{% endif %}

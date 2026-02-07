@@ -1,0 +1,6 @@
+<option value="">{{ _("form.select_client") if _ else "Kunde auswählen..." }}</option>
+{% for client in clients %}
+<option value="{{ client.id }}" data-name="{{ client.name }}" data-country="{{ client.country }}" data-vat-id="{{ client.vat_id }}">
+    {{ client.name }}{% if client.city %} ({{ client.city }}){% endif %}{% if client.country != 'DE' %} - {{ client.country }}{% endif %}
+</option>
+{% endfor %}

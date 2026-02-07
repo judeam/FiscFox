@@ -1,0 +1,831 @@
+<!-- AI Chat Interface Component -->
+<!-- Redesigned with FiscFox design system: forest/amber/cream palette -->
+
+<!-- Chat Toggle Button -->
+<button
+    id="ai-chat-toggle"
+    onclick="toggleAIChat()"
+    class="w-14 h-14 rounded-full bg-forest hover:bg-forest-light text-white border-none cursor-pointer flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+    style="position: fixed !important; bottom: 24px !important; right: 24px !important; z-index: 9999 !important;"
+    title="{{ _('ai.title') }}"
+>
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+    </svg>
+</button>
+
+<!-- Chat Panel -->
+<div
+    id="ai-chat-panel"
+    class="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl border border-cream-dark/50 dark:border-neutral-700 overflow-hidden opacity-0 translate-y-4 transition-all duration-300"
+    style="position: fixed !important; bottom: 96px !important; right: 24px !important; z-index: 9999 !important; display: none !important; flex-direction: column !important; width: 420px !important; height: 520px !important; max-width: calc(100vw - 3rem) !important; max-height: calc(100vh - 8rem) !important;"
+    data-status-ready="{{ _('ai.status_ready') }}"
+    data-status-thinking="{{ _('ai.status_thinking') }}"
+    data-status-error="{{ _('ai.status_error') }}"
+    data-connection-error="{{ _('ai.connection_error') }}"
+    data-error-prefix="{{ _('ai.error.generic').replace('{error}', '') }}"
+>
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-forest to-forest-light text-white">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-sm">{{ _("ai.fiscfox_ai") }}</h3>
+                <p class="text-xs text-white/70" id="ai-status">{{ _("ai.status_ready") }}</p>
+            </div>
+        </div>
+        <button onclick="toggleAIChat()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Model Loading Overlay -->
+    <div id="ai-loading-overlay" class="hidden absolute inset-0 bg-white/95 dark:bg-neutral-800/95 z-10 flex-col items-center justify-center gap-4 rounded-2xl">
+        <div class="w-12 h-12 border-3 border-cream-dark dark:border-neutral-600 border-t-forest dark:border-t-amber rounded-full animate-spin"></div>
+        <div class="text-center px-6">
+            <p id="ai-loading-text" class="font-medium text-forest dark:text-amber">{{ _("ai.loading_model") }}</p>
+            <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("ai.loading_model_hint") }}</p>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="ai-messages" class="p-4 space-y-4" style="flex: 1 1 0% !important; min-height: 0 !important; overflow-y: auto !important; overflow-x: hidden !important; overscroll-behavior: contain !important;">
+        <!-- Welcome Message -->
+        <div class="flex gap-3 ai-message-enter">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-forest/20 to-sage/20 dark:from-amber/20 dark:to-amber/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg class="w-4 h-4 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0 bg-cream/80 dark:bg-neutral-700 rounded-2xl rounded-tl-md p-4 shadow-sm">
+                <p class="text-sm text-charcoal dark:text-white leading-relaxed">
+                    {{ _("ai.welcome") }}
+                </p>
+                <ul class="mt-3 text-sm text-slate dark:text-gray-300 space-y-2">
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber mt-0.5">&#9679;</span>
+                        <span>{{ _("ai.help_tax") }}</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber mt-0.5">&#9679;</span>
+                        <span>{{ _("ai.help_financial") }}</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-amber mt-0.5">&#9679;</span>
+                        <span>{{ _("ai.help_afa") }}</span>
+                    </li>
+                </ul>
+                <p class="mt-3 text-xs text-slate/60 dark:text-gray-500">
+                    {{ _("ai.ask_me") }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Styles -->
+    <style>
+        /* Animations */
+        @keyframes messageEnter {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ai-message-enter {
+            animation: messageEnter 0.3s ease-out forwards;
+        }
+
+        /* Typing dots animation */
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+            padding: 4px 0;
+        }
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #1a3a2f;
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+        .dark .typing-dots span {
+            background: #d4a853;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: 0ms; }
+        .typing-dots span:nth-child(2) { animation-delay: 200ms; }
+        .typing-dots span:nth-child(3) { animation-delay: 400ms; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* AI Prose Styles */
+        .ai-prose {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #2c2c2c;
+        }
+        .dark .ai-prose {
+            color: #f3f4f6;
+        }
+        .ai-prose strong {
+            font-weight: 600;
+            color: #1a3a2f;
+        }
+        .dark .ai-prose strong {
+            color: #d4a853;
+        }
+        .ai-prose em {
+            font-style: italic;
+            color: #64748b;
+        }
+        .ai-prose code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .dark .ai-prose code {
+            background: rgba(255,255,255,0.1);
+        }
+        .ai-prose h1, .ai-prose h2, .ai-prose h3 {
+            font-weight: 600;
+            color: #1a3a2f;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+        .dark .ai-prose h1, .dark .ai-prose h2, .dark .ai-prose h3 {
+            color: #d4a853;
+        }
+        .ai-prose h1 { font-size: 18px; }
+        .ai-prose h2 { font-size: 16px; }
+        .ai-prose h3 { font-size: 14px; }
+        .ai-prose ul, .ai-prose ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        .ai-prose li {
+            margin: 4px 0;
+        }
+        .ai-prose li::marker {
+            color: #d4a853;
+        }
+        .ai-prose blockquote {
+            border-left: 3px solid #d4a853;
+            padding-left: 12px;
+            margin: 8px 0;
+            color: #64748b;
+            font-style: italic;
+        }
+        .ai-prose a {
+            color: #1a3a2f;
+            text-decoration: none;
+            border-bottom: 1px solid #d4a853;
+            transition: all 0.2s;
+        }
+        .dark .ai-prose a {
+            color: #d4a853;
+        }
+        .ai-prose a:hover {
+            color: #d4a853;
+            border-bottom-color: transparent;
+        }
+
+        /* Data Cards (for tables) */
+        .data-card {
+            background: linear-gradient(135deg, rgba(250,248,245,0.8) 0%, rgba(240,237,232,0.5) 100%);
+            border: 1px solid rgba(240,237,232,0.8);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 6px 0;
+            transition: all 0.2s;
+        }
+        .dark .data-card {
+            background: linear-gradient(135deg, rgba(64,64,64,0.5) 0%, rgba(55,55,55,0.3) 100%);
+            border-color: rgba(75,75,75,0.5);
+        }
+        .data-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .data-card-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+        .dark .data-card-label {
+            color: #9ca3af;
+        }
+        .data-card-value {
+            font-size: 13px;
+            color: #2c2c2c;
+            font-weight: 500;
+        }
+        .dark .data-card-value {
+            color: #f3f4f6;
+        }
+        .data-card-value.primary {
+            color: #1a3a2f;
+            font-weight: 600;
+        }
+        .dark .data-card-value.primary {
+            color: #d4a853;
+        }
+        .data-card-link {
+            color: #1a3a2f;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .dark .data-card-link {
+            color: #d4a853;
+        }
+        .data-card-link:hover {
+            color: #d4a853;
+        }
+        .dark .data-card-link:hover {
+            color: #e8c87a;
+        }
+
+        /* Compact table styles */
+        .ai-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .ai-table th {
+            background: #faf8f5;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-size: 10px;
+            color: #64748b;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #f0ede8;
+        }
+        .dark .ai-table th {
+            background: #374151;
+            color: #9ca3af;
+            border-color: #4b5563;
+        }
+        .ai-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0ede8;
+            color: #2c2c2c;
+        }
+        .dark .ai-table td {
+            border-color: #4b5563;
+            color: #f3f4f6;
+        }
+        .ai-table tr:last-child td {
+            border-bottom: none;
+        }
+        .ai-table tr:hover td {
+            background: rgba(250,248,245,0.5);
+        }
+        .dark .ai-table tr:hover td {
+            background: rgba(55,65,81,0.5);
+        }
+    </style>
+
+    <!-- Input Area -->
+    <div class="border-t border-cream-dark/50 dark:border-neutral-700 p-4 bg-cream/30 dark:bg-neutral-800">
+        <form id="ai-chat-form" onsubmit="sendAIMessage(event)" class="flex gap-3">
+            <input
+                type="text"
+                id="ai-input"
+                placeholder="{{ _('ai.placeholder') }}"
+                class="flex-1 px-4 py-3 bg-white dark:bg-neutral-700 border border-cream-dark/50 dark:border-neutral-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-forest/30 dark:focus:ring-amber/30 focus:border-forest dark:focus:border-amber transition-all placeholder:text-slate/50 dark:placeholder:text-gray-500"
+                autocomplete="off"
+            >
+            <button
+                type="submit"
+                class="px-5 py-3 bg-forest hover:bg-forest-light text-white rounded-xl cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md transition-all"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+            </button>
+        </form>
+        <p class="text-[11px] text-slate/60 dark:text-gray-500 mt-3 text-center">
+            {{ _("ai.local_processing") }}
+        </p>
+    </div>
+</div>
+
+<!-- Chat JavaScript -->
+<script>
+// Get translations from data attributes
+const aiPanel = document.getElementById('ai-chat-panel');
+const AI_TRANSLATIONS = {
+    statusReady: aiPanel.dataset.statusReady,
+    statusThinking: aiPanel.dataset.statusThinking,
+    statusError: aiPanel.dataset.statusError,
+    connectionError: aiPanel.dataset.connectionError,
+    errorPrefix: aiPanel.dataset.errorPrefix
+};
+
+function toggleAIChat() {
+    const panel = document.getElementById('ai-chat-panel');
+    const toggle = document.getElementById('ai-chat-toggle');
+    const isVisible = panel.style.display === 'flex';
+
+    if (!isVisible) {
+        // Show panel with animation
+        panel.style.display = 'flex';
+        // Trigger animation on next frame
+        requestAnimationFrame(() => {
+            panel.classList.remove('opacity-0', 'translate-y-4');
+            panel.classList.add('opacity-100', 'translate-y-0');
+        });
+        toggle.classList.add('scale-0');
+        document.getElementById('ai-input').focus();
+        checkModelStatus();
+    } else {
+        // Hide panel with animation
+        panel.classList.remove('opacity-100', 'translate-y-0');
+        panel.classList.add('opacity-0', 'translate-y-4');
+        toggle.classList.remove('scale-0');
+        // Wait for animation to complete
+        setTimeout(() => {
+            panel.style.display = 'none';
+        }, 300);
+    }
+}
+
+let modelStatusInterval = null;
+
+async function checkModelStatus() {
+    const overlay = document.getElementById('ai-loading-overlay');
+    const input = document.getElementById('ai-input');
+    const submitBtn = document.querySelector('#ai-chat-form button[type="submit"]');
+
+    try {
+        const response = await fetch('/api/llm/status');
+        const data = await response.json();
+
+        if (data.status === 'loading') {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            input.disabled = true;
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50');
+
+            if (!modelStatusInterval) {
+                modelStatusInterval = setInterval(checkModelStatus, 2000);
+            }
+        } else if (data.status === 'ready' || data.status === 'idle') {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            input.disabled = false;
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50');
+
+            if (modelStatusInterval) {
+                clearInterval(modelStatusInterval);
+                modelStatusInterval = null;
+            }
+        } else if (data.status === 'disabled') {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            input.placeholder = AI_TRANSLATIONS.statusError || 'AI features disabled';
+            input.disabled = true;
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50');
+
+            if (modelStatusInterval) {
+                clearInterval(modelStatusInterval);
+                modelStatusInterval = null;
+            }
+        } else if (data.status === 'error') {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+            document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusError;
+
+            if (modelStatusInterval) {
+                clearInterval(modelStatusInterval);
+                modelStatusInterval = null;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check model status:', error);
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        input.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50');
+    }
+}
+
+async function sendAIMessage(event) {
+    event.preventDefault();
+
+    const input = document.getElementById('ai-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const messagesContainer = document.getElementById('ai-messages');
+
+    // Add user message
+    messagesContainer.innerHTML += `
+        <div class="flex gap-3 justify-end ai-message-enter">
+            <div class="max-w-[85%] bg-forest dark:bg-amber text-white dark:text-charcoal rounded-2xl rounded-tr-md px-4 py-3 shadow-sm">
+                <p class="text-sm leading-relaxed">${escapeHtml(message)}</p>
+            </div>
+        </div>
+    `;
+
+    input.value = '';
+    scrollToBottom(messagesContainer);
+
+    // Update status
+    document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusThinking;
+
+    // Create AI response container with animated typing dots
+    const responseId = 'ai-response-' + Date.now();
+    messagesContainer.innerHTML += `
+        <div class="flex gap-3 ai-message-enter" id="${responseId}">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-forest/20 to-sage/20 dark:from-amber/20 dark:to-amber/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg class="w-4 h-4 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0 bg-cream/80 dark:bg-neutral-700 rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
+                <div id="${responseId}-content" class="ai-prose">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    scrollToBottom(messagesContainer);
+
+    try {
+        const eventSource = new EventSource(`/api/llm/stream?message=${encodeURIComponent(message)}`);
+        const contentDiv = document.getElementById(`${responseId}-content`);
+        let fullContent = '';
+
+        eventSource.addEventListener('intent', (event) => {
+            const data = JSON.parse(event.data);
+            console.log('Intent:', data.intent, 'Confidence:', data.confidence);
+        });
+
+        eventSource.addEventListener('token', (event) => {
+            fullContent += event.data;
+            contentDiv.innerHTML = formatMarkdown(fullContent);
+            scrollToBottomThrottled(messagesContainer);
+        });
+
+        eventSource.addEventListener('done', () => {
+            eventSource.close();
+            document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusReady;
+            scrollToBottom(messagesContainer);
+        });
+
+        eventSource.addEventListener('error', (event) => {
+            eventSource.close();
+            document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusError;
+
+            if (event.data) {
+                const error = JSON.parse(event.data);
+                contentDiv.innerHTML = `<span class="text-terracotta">${AI_TRANSLATIONS.errorPrefix}${escapeHtml(error.error)}</span>`;
+            }
+        });
+
+        eventSource.onerror = () => {
+            eventSource.close();
+            document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusReady;
+
+            if (!fullContent) {
+                contentDiv.innerHTML = `<span class="text-terracotta">${AI_TRANSLATIONS.connectionError}</span>`;
+            }
+        };
+
+    } catch (error) {
+        document.getElementById('ai-status').textContent = AI_TRANSLATIONS.statusError;
+
+        const contentDiv = document.getElementById(`${responseId}-content`);
+        contentDiv.innerHTML = `<span class="text-terracotta">${AI_TRANSLATIONS.errorPrefix}${escapeHtml(error.message)}</span>`;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function scrollToBottom(container, instant = false) {
+    container.scrollTo({
+        top: container.scrollHeight,
+        behavior: instant ? 'instant' : 'smooth'
+    });
+}
+
+let scrollTimeout = null;
+function scrollToBottomThrottled(container) {
+    if (scrollTimeout) return;
+    scrollTimeout = setTimeout(() => {
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+        });
+        scrollTimeout = null;
+    }, 100);
+}
+
+function formatMarkdown(text) {
+    // Check for markdown tables first
+    if (text.includes('|') && text.includes('---')) {
+        text = formatMarkdownTables(text);
+    }
+
+    // Headers
+    text = text.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+
+    // Bold and italic
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/(?<![<\/])\*([^*]+)\*(?![>])/g, '<em>$1</em>');
+
+    // Code
+    text = text.replace(/`(.*?)`/g, '<code>$1</code>');
+
+    // Lists
+    text = text.replace(/^- (.*?)$/gm, '<li>$1</li>');
+    text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+    // Blockquotes
+    text = text.replace(/^> (.*?)$/gm, '<blockquote>$1</blockquote>');
+
+    // Links - citations
+    text = text.replace(/\[(\d+)\]/g, '<span class="text-amber font-medium">[$1]</span>');
+
+    // Line breaks (but not after block elements)
+    text = text.replace(/\n(?!<)/g, '<br>');
+
+    return text;
+}
+
+function formatMarkdownTables(text) {
+    const lines = text.split('\n');
+    let result = [];
+    let inTable = false;
+    let tableLines = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (line.startsWith('|') && line.endsWith('|')) {
+            if (!inTable) {
+                inTable = true;
+                tableLines = [];
+            }
+            tableLines.push(line);
+        } else if (inTable) {
+            result.push(renderTable(tableLines));
+            inTable = false;
+            tableLines = [];
+            result.push(line);
+        } else {
+            result.push(line);
+        }
+    }
+
+    if (inTable && tableLines.length > 0) {
+        result.push(renderTable(tableLines));
+    }
+
+    return result.join('\n');
+}
+
+function renderTable(lines) {
+    if (lines.length < 2) return lines.join('\n');
+
+    // Parse header
+    const headerCells = lines[0].split('|').filter(c => c.trim()).map(c => c.trim());
+    const headerLower = headerCells.map(h => h.toLowerCase());
+
+    // Find id column index for linking
+    const idIndex = headerLower.indexOf('id');
+
+    // Skip separator line
+    const dataLines = lines.slice(2);
+
+    // Hidden columns (id is always hidden)
+    const hiddenColumns = new Set();
+    if (idIndex >= 0) hiddenColumns.add(idIndex);
+
+    // Priority columns for card layout (show only most important)
+    const priorityFields = [
+        'invoice_number', 'rechnungsnummer',
+        'kunde', 'client', 'name',
+        'betrag', 'amount', 'amount_gross',
+        'status',
+        'date', 'rechnungsdatum', 'datum'
+    ];
+
+    // Determine visible columns
+    const visibleHeaders = headerCells.filter((_, i) => !hiddenColumns.has(i));
+
+    // If more than 3 columns, use card layout with limited fields
+    const useCards = visibleHeaders.length > 3;
+
+    if (useCards) {
+        // Card layout - show only priority fields for cleaner display
+        let html = '<div class="space-y-2 my-2">';
+
+        for (const line of dataLines) {
+            const cells = line.split('|').filter(c => c.trim()).map(c => c.trim());
+            const rowId = idIndex >= 0 ? cells[idIndex] : null;
+
+            // Build card with only important fields
+            let cardContent = [];
+            let primaryValue = null;
+
+            cells.forEach((cell, i) => {
+                if (hiddenColumns.has(i)) return;
+
+                const header = headerCells[i] || '';
+                const headerL = headerLower[i] || '';
+
+                // Check if this is a priority field
+                const isPriority = priorityFields.some(pf => headerL.includes(pf) || pf.includes(headerL));
+                if (!isPriority && visibleHeaders.length > 5) return; // Skip non-priority if too many cols
+
+                let formatted = escapeHtml(cell);
+                let isPrimary = false;
+
+                // Check for linkable fields
+                if (rowId && (headerL === 'invoice_number' || headerL === 'rechnungsnummer')) {
+                    isPrimary = true;
+                    primaryValue = { header, formatted: `<span class="data-card-link" onclick="openInvoiceDetails('${rowId}')">${escapeHtml(cell)}</span>` };
+                    return; // Handle separately as header
+                } else if (rowId && (headerL === 'description' || headerL === 'beschreibung') &&
+                           (headerLower.includes('vendor') || headerLower.includes('category'))) {
+                    formatted = `<a href="/ausgaben" class="data-card-link" onclick="toggleAIChat()">${escapeHtml(cell)}</a>`;
+                } else if (rowId && headerL === 'name' && headerLower.includes('email')) {
+                    formatted = `<a href="/kunden" class="data-card-link" onclick="toggleAIChat()">${escapeHtml(cell)}</a>`;
+                }
+
+                // Currency formatting
+                if (cell.match(/^\d+([.,]\d{2})?\s*€?$/) || headerL.includes('betrag') || headerL.includes('amount')) {
+                    formatted = `<span class="font-mono font-semibold">${escapeHtml(cell)}</span>`;
+                }
+
+                // Status badge
+                if (headerL === 'status') {
+                    const statusColors = {
+                        'paid': 'bg-sage/20 text-sage',
+                        'bezahlt': 'bg-sage/20 text-sage',
+                        'pending': 'bg-amber/20 text-amber-dark',
+                        'offen': 'bg-amber/20 text-amber-dark',
+                        'overdue': 'bg-terracotta/20 text-terracotta',
+                        'überfällig': 'bg-terracotta/20 text-terracotta'
+                    };
+                    const colorClass = statusColors[cell.toLowerCase()] || 'bg-slate/20 text-slate';
+                    formatted = `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}">${escapeHtml(cell)}</span>`;
+                }
+
+                cardContent.push({ header, formatted, headerL });
+            });
+
+            // Render compact card
+            html += '<div class="data-card">';
+
+            // Primary header (invoice number) if exists
+            if (primaryValue) {
+                html += `<div class="font-semibold text-sm mb-2">${primaryValue.formatted}</div>`;
+            }
+
+            // Other fields in a compact grid (max 4 fields)
+            const displayFields = cardContent.slice(0, 4);
+            if (displayFields.length > 0) {
+                html += '<div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">';
+                displayFields.forEach(field => {
+                    html += `<div class="text-slate/70 dark:text-gray-400">${escapeHtml(field.header)}</div>`;
+                    html += `<div class="text-charcoal dark:text-white">${field.formatted}</div>`;
+                });
+                html += '</div>';
+            }
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
+    } else {
+        // Compact table layout
+        let html = '<table class="ai-table">';
+
+        // Header
+        html += '<thead><tr>';
+        headerCells.forEach((cell, i) => {
+            if (!hiddenColumns.has(i)) {
+                html += `<th>${escapeHtml(cell)}</th>`;
+            }
+        });
+        html += '</tr></thead>';
+
+        // Body
+        html += '<tbody>';
+        for (const line of dataLines) {
+            const cells = line.split('|').filter(c => c.trim()).map(c => c.trim());
+            const rowId = idIndex >= 0 ? cells[idIndex] : null;
+
+            html += '<tr>';
+            cells.forEach((cell, i) => {
+                if (hiddenColumns.has(i)) return;
+
+                const header = headerLower[i] || '';
+                let formatted = escapeHtml(cell);
+
+                // Currency formatting
+                if (cell.match(/^\d+([.,]\d{2})?\s*€?$/)) {
+                    formatted = `<span class="font-mono">${formatted}</span>`;
+                }
+
+                // Links
+                if (rowId) {
+                    if (header === 'invoice_number' || header === 'rechnungsnummer') {
+                        formatted = `<span class="text-forest dark:text-amber font-semibold cursor-pointer hover:underline" onclick="openInvoiceDetails('${rowId}')">${escapeHtml(cell)}</span>`;
+                    } else if ((header === 'description' || header === 'beschreibung') &&
+                               (headerLower.includes('vendor') || headerLower.includes('category') || headerLower.includes('kategorie'))) {
+                        formatted = `<a href="/ausgaben" class="text-forest dark:text-amber hover:underline" onclick="toggleAIChat()">${escapeHtml(cell)}</a>`;
+                    } else if (header === 'name' && (headerLower.includes('email') || headerLower.includes('client'))) {
+                        formatted = `<a href="/kunden" class="text-forest dark:text-amber hover:underline" onclick="toggleAIChat()">${escapeHtml(cell)}</a>`;
+                    }
+                }
+
+                html += `<td>${formatted}</td>`;
+            });
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+
+        return html;
+    }
+}
+
+// Open invoice details modal via HTMX
+function openInvoiceDetails(invoiceId) {
+    toggleAIChat();
+    htmx.ajax('GET', `/invoices/${invoiceId}`, {
+        target: 'body',
+        swap: 'beforeend'
+    });
+}
+
+// Keyboard shortcut: Cmd/Ctrl + K to toggle chat
+document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleAIChat();
+    }
+});
+
+// Prevent scroll from escaping the chat panel
+(function() {
+    const messagesContainer = document.getElementById('ai-messages');
+    const panel = document.getElementById('ai-chat-panel');
+
+    // Handle wheel events on the messages container
+    messagesContainer.addEventListener('wheel', function(e) {
+        const { scrollTop, scrollHeight, clientHeight } = this;
+        const deltaY = e.deltaY;
+
+        // Check if we're at the boundaries
+        const atTop = scrollTop === 0;
+        const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+
+        // If scrolling up at top, or scrolling down at bottom, prevent page scroll
+        if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
+            e.preventDefault();
+        }
+
+        // Always stop propagation to prevent page scroll
+        e.stopPropagation();
+    }, { passive: false });
+
+    // Also prevent touchmove from escaping on mobile
+    panel.addEventListener('touchmove', function(e) {
+        e.stopPropagation();
+    }, { passive: true });
+})();
+</script>

@@ -1,0 +1,151 @@
+<div class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-amber dark:border-amber/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]">
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            {{ _("invoice.edit") if _ else "Rechnung bearbeiten" }}
+        </h3>
+        <button
+            type="button"
+            onclick="document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <form
+        id="invoice-edit-form"
+        hx-put="/invoices/{{ invoice.id }}/update"
+        hx-target="#invoice-{{ invoice.id }}"
+        hx-swap="outerHTML"
+        hx-on::after-request="if(event.detail.successful) { document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll(); }"
+        class="space-y-4"
+    >
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Client (read-only display) -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.client") if _ else "Kunde" }}</label>
+                <input
+                    type="text"
+                    name="client"
+                    required
+                    value="{{ invoice.client }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Invoice Number -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.invoice_number") if _ else "Rechnungsnummer" }}</label>
+                <input
+                    type="text"
+                    name="invoice_number"
+                    required
+                    value="{{ invoice.invoice_number }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Date -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.invoice_date") if _ else "Rechnungsdatum" }}</label>
+                <input
+                    type="date"
+                    name="date"
+                    required
+                    value="{{ invoice.date.strftime('%Y-%m-%d') }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Due Date -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.due_date") if _ else "Fälligkeitsdatum" }}</label>
+                <input
+                    type="date"
+                    name="due_date"
+                    value="{{ invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '' }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Amount -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.amount") if _ else "Betrag (netto)" }}</label>
+                <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value="{{ invoice.amount_net }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- VAT Rate -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.ust_rate") if _ else "USt.-Satz" }}</label>
+                <select
+                    name="vat_rate"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+                    {% for rate, label in vat_rates %}
+                    <option value="{{ rate }}" {% if invoice.vat_rate.value == rate %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("table.status") if _ else "Status" }}</label>
+                <select
+                    name="status"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+                    <option value="pending" {% if invoice.status.value == 'pending' %}selected{% endif %}>{{ _("status.pending") if _ else "Offen" }}</option>
+                    <option value="paid" {% if invoice.status.value == 'paid' %}selected{% endif %}>{{ _("status.paid") if _ else "Bezahlt" }}</option>
+                    <option value="overdue" {% if invoice.status.value == 'overdue' %}selected{% endif %}>{{ _("status.overdue") if _ else "Überfällig" }}</option>
+                </select>
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-1 col-span-2">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.service_description") if _ else "Leistungsbeschreibung" }}</label>
+                <textarea
+                    name="description"
+                    rows="2"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all resize-none"
+                >{{ invoice.description or '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+            <p class="text-xs text-slate dark:text-gray-500">
+                <span class="font-mono">{{ invoice.invoice_number }}</span> - {{ _("invoice.last_modified") if _ else "Bearbeiten" }}
+            </p>
+            <div class="flex gap-3">
+                <button
+                    type="button"
+                    onclick="document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+                    class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+                >
+                    {{ _("action.cancel") if _ else "Abbrechen" }}
+                </button>
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-amber hover:bg-amber-dark text-forest font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    {{ _("action.save") if _ else "Speichern" }}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,24 @@
+<table class="w-full">
+    <thead class="bg-cream dark:bg-neutral-700">
+        <tr class="text-left text-xs font-medium text-slate dark:text-gray-400 uppercase tracking-wider">
+            <th class="py-3 px-4">{{ _("form.date") if _ else "Datum" }}</th>
+            <th class="py-3 px-4">{{ _("bewirtung.restaurant") if _ else "Restaurant/Anlass" }}</th>
+            <th class="py-3 px-4">{{ _("bewirtung.attendees") if _ else "Teilnehmer" }}</th>
+            <th class="py-3 px-4 text-center">{{ _("bewirtung.type") if _ else "Typ" }}</th>
+            <th class="py-3 px-4 text-right">{{ _("bewirtung.amount") if _ else "Betrag" }}</th>
+            <th class="py-3 px-4 text-right">{{ _("bewirtung.deductible") if _ else "Abzugsfähig" }}</th>
+            <th class="py-3 px-4 text-right"></th>
+        </tr>
+    </thead>
+    <tbody id="bewirtung-list">
+        {% for meal in meals %}
+        {% include "partials/_bewirtung_row.html" %}
+        {% else %}
+        <tr>
+            <td colspan="7" class="py-8 text-center text-slate dark:text-gray-400">
+                {{ _("bewirtung.no_meals") if _ else "Keine Bewirtungen erfasst" }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

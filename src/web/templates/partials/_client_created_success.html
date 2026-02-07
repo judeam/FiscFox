@@ -1,0 +1,38 @@
+<div class="bg-forest/10 dark:bg-forest-light/10 border border-forest/30 rounded-lg p-3 animate-[fadeSlideUp_0.3s_ease-out]">
+    <div class="flex items-center gap-2 text-forest dark:text-forest-light">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="text-sm font-medium">
+            {{ _("client.created_success") if _ else "Kunde erfolgreich angelegt" }}: <strong>{{ client.name }}</strong>
+        </span>
+    </div>
+    <p class="text-xs text-slate dark:text-gray-400 mt-1 ml-7">
+        {{ _("client.select_from_dropdown") if _ else "Bitte wählen Sie den Kunden aus dem Dropdown aus." }}
+    </p>
+</div>
+
+<script>
+// Refresh the client dropdown and auto-select the new client
+(function() {
+    const select = document.getElementById('client-select');
+    const clientNameHidden = document.getElementById('client-name-hidden');
+    const newClientId = {{ client.id }};
+    const newClientName = "{{ client.name }}";
+    const successMsg = document.currentScript.parentElement;
+
+    // Trigger dropdown refresh
+    if (select) htmx.trigger(select, 'load');
+
+    // Wait for the dropdown to load, then select the new client
+    setTimeout(function() {
+        if (select) select.value = newClientId;
+        if (clientNameHidden) clientNameHidden.value = newClientName;
+    }, 300);
+
+    // Clear the success message after 3 seconds
+    setTimeout(function() {
+        if (successMsg) successMsg.remove();
+    }, 3000);
+})();
+</script>

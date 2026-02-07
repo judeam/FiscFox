@@ -1,0 +1,171 @@
+<div
+    id="upload-container"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-forest dark:border-forest-light/50 p-8 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4 mb-6">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">
+            Upload Invoice PDF
+        </h3>
+        <button
+            type="button"
+            onclick="document.getElementById('upload-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <form
+        id="upload-form"
+        hx-post="/upload/invoice"
+        hx-target="#upload-container"
+        hx-target-4*="#upload-form-container"
+        hx-swap="outerHTML"
+        hx-encoding="multipart/form-data"
+        hx-indicator="#upload-spinner"
+        class="space-y-4"
+    >
+        <!-- Dropzone Area -->
+        <div
+            id="dropzone"
+            class="relative border-2 border-dashed border-slate/30 dark:border-neutral-600 rounded-xl p-8 text-center hover:border-forest dark:hover:border-forest-light transition-colors cursor-pointer"
+            ondrop="handleDrop(event)"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            onclick="document.getElementById('file-input').click()"
+        >
+            <input
+                type="file"
+                id="file-input"
+                name="file"
+                accept="application/pdf,.pdf"
+                required
+                class="hidden"
+                onchange="handleFileSelect(this)"
+            >
+
+            <div id="dropzone-content" class="space-y-4">
+                <div class="w-16 h-16 mx-auto bg-forest/10 dark:bg-forest/20 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 text-forest dark:text-forest-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-charcoal dark:text-white font-medium">
+                        Drag and drop your PDF here
+                    </p>
+                    <p class="text-sm text-slate dark:text-gray-400 mt-1">
+                        or click to browse
+                    </p>
+                </div>
+                <p class="text-xs text-slate/70 dark:text-gray-500">
+                    Max file size: 10MB. PDF files only.
+                </p>
+            </div>
+
+            <!-- Selected File Display (hidden initially) -->
+            <div id="selected-file" class="hidden space-y-2">
+                <div class="flex items-center justify-center gap-3">
+                    <svg class="w-8 h-8 text-forest dark:text-forest-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span id="selected-file-name" class="text-charcoal dark:text-white font-medium"></span>
+                </div>
+                <button
+                    type="button"
+                    onclick="clearFileSelection(event)"
+                    class="text-sm text-slate hover:text-red-500 transition-colors"
+                >
+                    Remove
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Button -->
+        <div class="flex justify-end gap-3 pt-2">
+            <button
+                type="button"
+                onclick="document.getElementById('upload-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+                class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                id="upload-btn"
+                disabled
+                class="px-6 py-2 bg-forest hover:bg-forest-dark text-white font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <!-- Normal state -->
+                <span id="upload-btn-text" class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Extract Invoice Data
+                </span>
+                <!-- Loading state -->
+                <span id="upload-spinner" class="htmx-indicator flex items-center gap-2">
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                </span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-forest', 'bg-forest/5');
+    e.currentTarget.classList.remove('border-slate/30');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-forest', 'bg-forest/5');
+    e.currentTarget.classList.add('border-slate/30');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-forest', 'bg-forest/5');
+    e.currentTarget.classList.add('border-slate/30');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            document.getElementById('file-input').files = files;
+            showSelectedFile(file.name);
+        } else {
+            alert('Please upload a PDF file.');
+        }
+    }
+}
+
+function handleFileSelect(input) {
+    if (input.files.length > 0) {
+        showSelectedFile(input.files[0].name);
+    }
+}
+
+function showSelectedFile(filename) {
+    document.getElementById('dropzone-content').classList.add('hidden');
+    document.getElementById('selected-file').classList.remove('hidden');
+    document.getElementById('selected-file-name').textContent = filename;
+    document.getElementById('upload-btn').disabled = false;
+}
+
+function clearFileSelection(e) {
+    e.stopPropagation();
+    document.getElementById('file-input').value = '';
+    document.getElementById('dropzone-content').classList.remove('hidden');
+    document.getElementById('selected-file').classList.add('hidden');
+    document.getElementById('upload-btn').disabled = true;
+}
+</script>

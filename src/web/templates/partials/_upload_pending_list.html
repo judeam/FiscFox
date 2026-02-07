@@ -1,0 +1,48 @@
+{% if uploads %}
+<div class="space-y-3">
+    {% for upload in uploads %}
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <div>
+                    <p class="font-medium text-charcoal dark:text-white text-sm">{{ upload.filename }}</p>
+                    <p class="text-xs text-slate dark:text-gray-400">
+                        Uploaded: {{ upload.uploaded_at }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    hx-get="/upload/{{ upload.id }}/review"
+                    hx-target="#upload-form-container"
+                    hx-swap="innerHTML"
+                    class="px-3 py-1.5 text-xs bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-medium rounded-lg transition-colors"
+                >
+                    Review
+                </button>
+                <button
+                    type="button"
+                    hx-delete="/upload/{{ upload.id }}"
+                    hx-target="closest div.bg-amber-50"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete this upload?"
+                    class="p-1.5 text-amber-600 hover:text-red-500 dark:text-amber-400 dark:hover:text-red-400 transition-colors"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate dark:text-gray-400 text-center py-4">
+    No pending uploads
+</p>
+{% endif %}

@@ -1,0 +1,81 @@
+<div class="space-y-4">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("gift.total") if _ else "Gesamt" }}</p>
+            <p class="font-mono text-xl font-bold text-charcoal dark:text-white">
+                €{{ "{:,.2f}".format(total_gifts).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("gift.deductible") if _ else "Abzugsfähig" }}</p>
+            <p class="font-mono text-xl font-bold text-forest dark:text-sage">
+                €{{ "{:,.2f}".format(total_deductible).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("gift.non_deductible") if _ else "Nicht abzugsfähig" }}</p>
+            <p class="font-mono text-xl font-bold text-terracotta">
+                €{{ "{:,.2f}".format(total_non_deductible).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+    </div>
+
+    <!-- At Risk Recipients -->
+    {% if at_risk %}
+    <div class="bg-amber/10 dark:bg-amber/5 rounded-xl p-4">
+        <h4 class="font-medium text-charcoal dark:text-white mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            {{ _("gift.at_risk_title") if _ else "Empfänger nahe Grenze" }}
+        </h4>
+        <div class="space-y-2">
+            {% for r in at_risk %}
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-charcoal dark:text-white">{{ r.recipient_name }}</span>
+                <span class="font-mono {% if r.is_over_limit %}text-terracotta{% else %}text-amber-dark dark:text-amber{% endif %}">
+                    €{{ "{:,.2f}".format(r.total_gifts_net).replace(",", " ").replace(".", ",").replace(" ", ".") }} / €{{ limit }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recipients Table -->
+    <table class="w-full">
+        <thead class="bg-cream dark:bg-neutral-700">
+            <tr class="text-left text-xs font-medium text-slate dark:text-gray-400 uppercase tracking-wider">
+                <th class="py-3 px-4">{{ _("gift.recipient") if _ else "Empfänger" }}</th>
+                <th class="py-3 px-4 text-right">{{ _("gift.total") if _ else "Gesamt" }}</th>
+                <th class="py-3 px-4 text-right">{{ _("gift.deductible") if _ else "Abzugsfähig" }}</th>
+                <th class="py-3 px-4 text-center">{{ _("gift.status") if _ else "Status" }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in summaries %}
+            <tr class="border-b border-cream-dark dark:border-neutral-700">
+                <td class="py-3 px-4 text-charcoal dark:text-white">{{ s.recipient_name }}</td>
+                <td class="py-3 px-4 font-mono text-right text-charcoal dark:text-white">
+                    €{{ "{:,.2f}".format(s.total_gifts_net).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                </td>
+                <td class="py-3 px-4 font-mono text-right text-forest dark:text-sage">
+                    €{{ "{:,.2f}".format(s.deductible_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                </td>
+                <td class="py-3 px-4 text-center">
+                    {% if s.is_over_limit %}
+                    <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-terracotta/10 text-terracotta">
+                        {{ _("gift.over_limit") if _ else "Über Limit" }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-forest/10 text-forest dark:text-sage">
+                        {{ _("gift.within_limit") if _ else "OK" }}
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,179 @@
+<div class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-forest dark:border-forest-light/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]">
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("invoice.create_new") if _ else "Neue Rechnung erstellen" }}</h3>
+        <button
+            type="button"
+            onclick="document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- New Client Form Container (OUTSIDE the invoice form to avoid nested forms) -->
+    <div id="new-client-form-container"></div>
+
+    <form
+        id="invoice-form"
+        hx-post="/invoices/add"
+        hx-target="#invoice-tbody"
+        hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful && event.detail.elt.id === 'invoice-form') { this.reset(); document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll(); }"
+        class="space-y-4"
+    >
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Client Selection -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.client") if _ else "Kunde" }}</label>
+                <div class="relative">
+                    <select
+                        id="client-select"
+                        name="client_id"
+                        onchange="handleClientSelect(this)"
+                        class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all appearance-none pr-10"
+                    >
+                        <option value="">{{ _("form.select_client") if _ else "Kunde auswählen..." }}</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}" data-name="{{ client.name }}" data-country="{{ client.country }}" data-vat-id="{{ client.vat_id }}">
+                            {{ client.name }}{% if client.city %} ({{ client.city }}){% endif %}{% if client.country != 'DE' %} - {{ client.country }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+                <!-- Hidden field for client name (populated by JS) -->
+                <input type="hidden" name="client" id="client-name-hidden" required>
+            </div>
+
+            <!-- New Client Button -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">&nbsp;</label>
+                <button
+                    type="button"
+                    hx-get="/clients/form"
+                    hx-target="#new-client-form-container"
+                    hx-swap="innerHTML"
+                    class="w-full px-4 py-2.5 bg-forest/10 hover:bg-forest/20 text-forest dark:text-forest-light border border-forest/30 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    {{ _("form.new_client") if _ else "Neuer Kunde" }}
+                </button>
+            </div>
+
+            <!-- Invoice Number -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.invoice_number") if _ else "Rechnungsnummer" }}</label>
+                <input
+                    type="text"
+                    name="invoice_number"
+                    required
+                    placeholder="{{ _('form.invoice_number_placeholder') if _ else 'z.B. 2026-006' }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Date -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.invoice_date") if _ else "Rechnungsdatum" }}</label>
+                <input
+                    type="date"
+                    name="date"
+                    required
+                    value="{{ today }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Due Date -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.due_date") if _ else "Fälligkeitsdatum" }}</label>
+                <input
+                    type="date"
+                    name="due_date"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- Amount -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.amount") if _ else "Betrag (€)" }}</label>
+                <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="0,00"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                >
+            </div>
+
+            <!-- VAT Rate -->
+            <div class="space-y-1">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.ust_rate") if _ else "USt.-Satz" }}</label>
+                <select
+                    name="vat_rate"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+                >
+                    {% for rate, label in vat_rates %}
+                    <option value="{{ rate }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Description -->
+            <div class="space-y-1 col-span-2">
+                <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.service_description") if _ else "Leistungsbeschreibung" }}</label>
+                <textarea
+                    name="description"
+                    required
+                    rows="2"
+                    minlength="3"
+                    placeholder="{{ _('form.service_description_placeholder') if _ else 'z.B. Backend-Entwicklung API Integration - März 2026' }}"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all resize-none"
+                ></textarea>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+            <button
+                type="button"
+                onclick="document.getElementById('invoice-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+                class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+            >
+                {{ _("action.cancel") if _ else "Abbrechen" }}
+            </button>
+            <button
+                type="submit"
+                class="px-6 py-2 bg-amber hover:bg-amber-dark text-forest font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                {{ _("form.create_invoice") if _ else "Rechnung erstellen" }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function handleClientSelect(select) {
+    const selectedOption = select.options[select.selectedIndex];
+    const clientNameHidden = document.getElementById('client-name-hidden');
+
+    if (selectedOption && selectedOption.value) {
+        // Set the client name from the data attribute or text content
+        clientNameHidden.value = selectedOption.dataset.name || selectedOption.textContent.split(' (')[0];
+    } else {
+        clientNameHidden.value = '';
+    }
+}
+</script>

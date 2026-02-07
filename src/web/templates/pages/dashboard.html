@@ -1,0 +1,865 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("nav.dashboard") if _ else "Dashboard" }}{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto h-[calc(100vh-120px)] flex flex-col page-enter">
+
+    <!-- Compact Header with Embedded Stats -->
+    <header class="flex-shrink-0 mb-4 hero-enter">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-6">
+                <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+                    {{ _("dashboard.greeting") if _ else "Guten Tag" }}, {{ user_name|default('Freelancer') }}
+                </h1>
+                <span class="px-2.5 py-1 bg-cream/70 dark:bg-neutral-700 rounded-lg text-sm font-semibold text-charcoal dark:text-white">
+                    {{ current_year }}
+                </span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button
+                    hx-get="/expenses/form"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    class="flex items-center gap-2 px-3 py-2 bg-forest/10 hover:bg-forest/20 text-forest dark:text-sage border border-forest/20 font-medium text-sm rounded-lg transition-all"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    {{ _("dashboard.expense") if _ else "Ausgabe" }}
+                </button>
+                <button
+                    hx-get="/invoices/form"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    class="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber-dark text-forest font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    {{ _("dashboard.invoice") if _ else "Rechnung" }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Tax Optimization Quick Stats -->
+        <div class="grid grid-cols-4 gap-2 mb-3">
+            <!-- AfA/Depreciation Widget -->
+            <a href="/anlagen" class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-2.5 flex items-center justify-between group hover:border-purple-400 dark:hover:border-purple-400 transition-colors">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-purple-100 dark:bg-purple-900/30 rounded-md flex items-center justify-center">
+                        <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.afa") if _ else "AfA" }}</p>
+                        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(afa_summary.total_depreciation).replace(",", ".") }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[9px] text-purple-600 dark:text-purple-400 font-medium">{{ afa_summary.active_asset_count }} {{ _("asset.active") if _ else "aktiv" }}</span>
+                    {% if afa_summary.expiring_count > 0 %}
+                    <p class="text-[9px] text-amber-dark flex items-center gap-0.5 justify-end">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ afa_summary.expiring_count }} {{ _("asset.expiring") if _ else "ablaufend" }}
+                    </p>
+                    {% endif %}
+                </div>
+            </a>
+
+            <!-- Travel Expenses Widget -->
+            <a href="/reisen" class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-2.5 flex items-center justify-between group hover:border-green-400 dark:hover:border-green-400 transition-colors">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.travel") if _ else "Reisen" }}</p>
+                        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(travel_summary.total_deduction).replace(",", ".") }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[9px] text-slate dark:text-gray-400 font-mono">{{ travel_summary.trip_count }} {{ _("travel.trips") if _ else "Reisen" }}</span>
+                    <p class="text-[9px] text-green-600 dark:text-green-400 flex items-center gap-1 justify-end">
+                        <span>€{{ "{:,.0f}".format(travel_summary.per_diem_total).replace(",", ".") }} {{ _("travel.per_diem_short") if _ else "VMA" }}</span>
+                    </p>
+                </div>
+            </a>
+
+            <!-- Gift Tracking Widget -->
+            <a href="/geschenke" class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-2.5 flex items-center justify-between group hover:border-pink-400 dark:hover:border-pink-400 transition-colors">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-pink-100 dark:bg-pink-900/30 rounded-md flex items-center justify-center">
+                        <svg class="w-4 h-4 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.gifts") if _ else "Geschenke" }}</p>
+                        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">{{ gift_warnings.recipient_count }} {{ _("gift.recipients") if _ else "Empfänger" }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    {% if gift_warnings.over_limit_count > 0 %}
+                    <span class="text-[9px] text-terracotta font-medium flex items-center gap-0.5 justify-end">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ gift_warnings.over_limit_count }} {{ _("gift.over_limit") if _ else ">50€" }}
+                    </span>
+                    {% elif gift_warnings.at_risk_count > 0 %}
+                    <span class="text-[9px] text-amber-dark font-medium flex items-center gap-0.5 justify-end">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ gift_warnings.at_risk_count }} {{ _("gift.at_risk") if _ else "≈50€" }}
+                    </span>
+                    {% else %}
+                    <span class="text-[9px] text-sage font-medium flex items-center gap-0.5 justify-end">
+                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        {{ _("gift.all_ok") if _ else "OK" }}
+                    </span>
+                    {% endif %}
+                </div>
+            </a>
+
+            <!-- Home Office Widget -->
+            <a href="/homeoffice" class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-2.5 flex items-center justify-between group hover:border-blue-400 dark:hover:border-blue-400 transition-colors">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
+                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.homeoffice") if _ else "Homeoffice" }}</p>
+                        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(homeoffice_summary.deduction_amount).replace(",", ".") }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    {% if homeoffice_summary.is_arbeitszimmer %}
+                    <span class="text-[9px] text-blue-600 dark:text-blue-400 font-medium">{{ _("homeoffice.room") if _ else "Arbeitszimmer" }}</span>
+                    {% else %}
+                    <span class="text-[9px] text-slate dark:text-gray-400 font-mono">{{ homeoffice_summary.days_used }}/{{ homeoffice_summary.max_days }} {{ _("homeoffice.days") if _ else "Tage" }}</span>
+                    {% if homeoffice_summary.percentage is not none %}
+                    <div class="w-12 h-1 bg-blue-100 dark:bg-blue-900/30 rounded-full mt-0.5 overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full" style="width: {{ [homeoffice_summary.percentage, 100] | min }}%"></div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+
+        <!-- Stats Strip -->
+        <div class="grid grid-cols-5 gap-3 stagger-children" id="stats-container">
+            <!-- Revenue -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-sage dark:hover:border-sage transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("stats.revenue") if _ else "Umsatz" }}</p>
+                    <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.total_revenue).replace(",", ".") }}</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-sage text-[10px] font-medium flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        {{ stats.revenue_change }}%
+                    </span>
+                    <div class="w-8 h-1.5 bg-sage/20 rounded-full mt-1 overflow-hidden">
+                        <div class="h-full bg-sage rounded-full" style="width: {{ [stats.revenue_change * 5, 100] | min }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-terracotta dark:hover:border-terracotta transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("stats.expenses") if _ else "Ausgaben" }}</p>
+                    <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.total_expenses).replace(",", ".") }}</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-terracotta text-[10px] font-medium flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        {{ stats.expense_change }}%
+                    </span>
+                    <div class="w-8 h-1.5 bg-terracotta/20 rounded-full mt-1 overflow-hidden">
+                        <div class="h-full bg-terracotta rounded-full" style="width: {{ [stats.expense_change | abs * 5, 100] | min }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VAT Collected -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-forest dark:hover:border-amber transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("stats.vat_collected") if _ else "USt." }}</p>
+                    <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.vat_collected).replace(",", ".") }}</p>
+                </div>
+                <div class="w-8 h-8 bg-forest/10 dark:bg-amber/10 rounded-md flex items-center justify-center">
+                    <svg class="w-4 h-4 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Estimated Tax -->
+            <div class="bg-gradient-to-r from-forest to-forest-light dark:from-neutral-700 dark:to-neutral-600 rounded-lg p-3 flex items-center justify-between text-white">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-white/70 font-medium">{{ _("stats.estimated_tax") if _ else "Est. Steuer" }}</p>
+                    <p class="font-mono text-lg font-semibold">€{{ "{:,.0f}".format(stats.estimated_tax).replace(",", ".") }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-amber text-xs font-mono font-medium">{{ stats.tax_rate }}%</span>
+                    <p class="text-[9px] text-white/50">{{ _("tax.effective_rate") if _ else "eff. Rate" }}</p>
+                </div>
+            </div>
+
+            <!-- Remaining Tax -->
+            {% if remaining_income_tax is defined %}
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group {% if remaining_income_tax > 0 %}hover:border-terracotta{% else %}hover:border-sage{% endif %} transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.remaining") if _ else "Noch offen" }}</p>
+                    <p class="font-mono text-lg font-semibold {% if remaining_income_tax > 0 %}text-terracotta{% else %}text-sage{% endif %}">
+                        €{{ "{:,.0f}".format(remaining_income_tax).replace(",", ".") }}
+                    </p>
+                </div>
+                {% if remaining_income_tax > 0 %}
+                <div class="w-8 h-8 bg-terracotta/10 rounded-md flex items-center justify-center">
+                    <svg class="w-4 h-4 text-terracotta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                {% else %}
+                <div class="w-8 h-8 bg-sage/10 rounded-md flex items-center justify-center">
+                    <svg class="w-4 h-4 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Grid: 3 Columns -->
+    <div class="flex-1 min-h-0 grid grid-cols-12 gap-4">
+
+        <!-- Left Column: Tax Deadlines -->
+        <div class="col-span-2 flex flex-col min-h-0">
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col overflow-hidden">
+                <div class="px-3 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30 flex-shrink-0">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-charcoal dark:text-white text-xs">{{ _("nav.tax_deadlines") if _ else "Fristen" }}</h3>
+                        <div class="flex gap-1.5">
+                            <span class="flex items-center gap-1 text-[9px] text-slate dark:text-gray-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>USt
+                            </span>
+                            <span class="flex items-center gap-1 text-[9px] text-slate dark:text-gray-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>ZM
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div id="tax-deadlines" class="flex-1 overflow-y-auto custom-scrollbar">
+                    {% include "partials/_tax_widget_compact.html" %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Column: Chart + Transactions -->
+        <div class="col-span-7 flex flex-col min-h-0 gap-4">
+            <!-- Income Chart (Compact) -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-shrink-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("dashboard.income_forecast") if _ else "Einkommensprognose" }}</h3>
+                        <span class="text-[10px] text-slate dark:text-gray-400 font-mono">GP {{ _("dashboard.bayesian") if _ else "Bayessch" }}</span>
+                    </div>
+                    <div class="flex gap-4 text-[10px]">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-forest"></span>
+                            <span class="text-slate dark:text-gray-400">{{ _("dashboard.actual") if _ else "Ist" }}</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber"></span>
+                            <span class="text-slate dark:text-gray-400">{{ _("dashboard.forecast") if _ else "Prognose" }}</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-6 h-2 rounded-sm" style="background: linear-gradient(90deg, rgba(212,168,83,0.3) 0%, rgba(212,168,83,0.05) 100%);"></span>
+                            <span class="text-slate dark:text-gray-400">95% CI</span>
+                        </span>
+                    </div>
+                </div>
+                {% if not chart_has_data %}
+                <div class="flex items-center justify-center h-[160px] text-slate dark:text-gray-400">
+                    <div class="text-center">
+                        <svg class="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <p class="text-xs">{{ _("dashboard.add_invoices_hint") if _ else "Rechnungen erstellen für Prognose" }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div id="income-chart" style="width: 100%; height: 160px;"></div>
+                {% endif %}
+            </div>
+
+            <!-- Transactions Tabs -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <!-- Tab Headers -->
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 flex items-center justify-between flex-shrink-0">
+                    <div class="flex gap-1" id="transaction-tabs">
+                        <button
+                            onclick="switchTab('expenses')"
+                            id="tab-expenses"
+                            class="px-3 py-1 text-xs font-medium rounded-md bg-forest/10 text-forest dark:bg-amber/20 dark:text-amber transition-colors"
+                        >
+                            {{ _("nav.expenses") if _ else "Ausgaben" }}
+                            <span class="ml-1 text-[10px] opacity-70">({{ expenses|length }})</span>
+                        </button>
+                        <button
+                            onclick="switchTab('invoices')"
+                            id="tab-invoices"
+                            class="px-3 py-1 text-xs font-medium rounded-md text-slate hover:bg-cream-dark dark:hover:bg-neutral-700 transition-colors"
+                        >
+                            {{ _("nav.invoices") if _ else "Rechnungen" }}
+                            <span class="ml-1 text-[10px] opacity-70">({{ invoices|length }})</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <input
+                                type="text"
+                                placeholder="{{ _('action.search') if _ else 'Suchen...' }}"
+                                class="w-32 pl-7 pr-2 py-1 text-xs bg-cream dark:bg-neutral-700 border-0 rounded-md text-charcoal dark:text-white placeholder-slate focus:ring-1 focus:ring-forest dark:focus:ring-amber"
+                            >
+                            <svg class="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="flex-1 overflow-hidden">
+                    <!-- Expenses Content -->
+                    <div id="content-expenses" class="h-full overflow-y-auto custom-scrollbar p-3">
+                        <div id="expense-list" class="space-y-2">
+                            {% for expense in expenses %}
+                            <div
+                                id="expense-{{ expense.id }}"
+                                class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-2.5 hover:bg-cream dark:hover:bg-neutral-700 transition-colors group"
+                                hx-target="this"
+                                hx-swap="outerHTML"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0
+                                            {% if expense.category.value == 'software' %}bg-purple-100 dark:bg-purple-900/30 text-purple-600
+                                            {% elif expense.category.value == 'hardware' %}bg-blue-100 dark:bg-blue-900/30 text-blue-600
+                                            {% elif expense.category.value == 'reise' %}bg-green-100 dark:bg-green-900/30 text-green-600
+                                            {% elif expense.category.value == 'buero' %}bg-orange-100 dark:bg-orange-900/30 text-orange-600
+                                            {% elif expense.category.value == 'kommunikation' %}bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600
+                                            {% elif expense.category.value == 'versicherung' %}bg-red-100 dark:bg-red-900/30 text-red-600
+                                            {% elif expense.category.value == 'fortbildung' %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600
+                                            {% else %}bg-slate/10 text-slate{% endif %}
+                                        ">
+                                            {% if expense.category.value == 'software' %}
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                                            {% elif expense.category.value == 'hardware' %}
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                            {% elif expense.category.value == 'reise' %}
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+                                            {% else %}
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                            {% endif %}
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-xs font-medium text-charcoal dark:text-white truncate">{{ expense.vendor }}</p>
+                                            <p class="text-[10px] text-slate dark:text-gray-400 truncate">{{ expense.description }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-right">
+                                            <p class="font-mono text-xs font-semibold text-charcoal dark:text-white">€{{ "{:,.2f}".format(expense.amount_gross).replace(",", " ").replace(".", ",") }}</p>
+                                            <p class="text-[9px] text-slate dark:text-gray-400 font-mono">{{ expense.date.strftime('%d.%m') }}</p>
+                                        </div>
+                                        <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                                            <button hx-get="/expenses/{{ expense.id }}/edit" class="p-1 text-slate hover:text-forest dark:hover:text-amber rounded">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </button>
+                                            <button hx-delete="/expenses/{{ expense.id }}" hx-confirm="{{ _('expense.confirm_delete') if _ else 'Löschen?' }}" class="p-1 text-slate hover:text-terracotta rounded">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Invoices Content -->
+                    <div id="content-invoices" class="h-full overflow-y-auto custom-scrollbar hidden">
+                        <table class="w-full">
+                            <thead class="bg-cream-dark/50 dark:bg-neutral-700/50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-[10px] font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.client") if _ else "Kunde" }}</th>
+                                    <th class="px-3 py-2 text-left text-[10px] font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.date") if _ else "Datum" }}</th>
+                                    <th class="px-3 py-2 text-right text-[10px] font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.amount") if _ else "Betrag" }}</th>
+                                    <th class="px-3 py-2 text-center text-[10px] font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.status") if _ else "Status" }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoice-tbody" class="divide-y divide-cream-dark dark:divide-neutral-700">
+                                {% for invoice in invoices %}
+                                <tr
+                                    id="invoice-{{ invoice.id }}"
+                                    class="hover:bg-cream-dark/30 dark:hover:bg-neutral-700/30 transition-colors group"
+                                    hx-target="this"
+                                    hx-swap="outerHTML"
+                                >
+                                    <td class="px-3 py-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 flex-shrink-0 bg-forest/10 dark:bg-amber/10 rounded-full flex items-center justify-center text-[10px] font-semibold text-forest dark:text-amber">
+                                                {{ invoice.client[:2]|upper }}
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-medium text-charcoal dark:text-white truncate">{{ invoice.client }}</p>
+                                                <p class="text-[9px] text-slate dark:text-gray-400 font-mono">{{ invoice.invoice_number }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <p class="font-mono text-xs text-charcoal dark:text-white">{{ invoice.date.strftime('%d.%m') }}</p>
+                                    </td>
+                                    <td class="px-3 py-2 text-right">
+                                        <p class="font-mono text-xs font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(invoice.amount).replace(",", ".") }}</p>
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+                                        {% if invoice.status.value == 'paid' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-sage/10 text-sage">
+                                            <span class="w-1 h-1 rounded-full bg-sage"></span>{{ _("status.paid") if _ else "Bezahlt" }}
+                                        </span>
+                                        {% elif invoice.status.value == 'pending' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber/10 text-amber-dark dark:text-amber">
+                                            <span class="w-1 h-1 rounded-full bg-amber"></span>{{ _("status.pending") if _ else "Offen" }}
+                                        </span>
+                                        {% elif invoice.status.value == 'overdue' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-terracotta/10 text-terracotta">
+                                            <span class="w-1 h-1 rounded-full bg-terracotta animate-pulse"></span>{{ _("status.overdue") if _ else "Überfällig" }}
+                                        </span>
+                                        {% endif %}
+                                        <!-- Quick Actions -->
+                                        <div class="mt-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5 justify-center">
+                                            {% if invoice.status.value != 'paid' %}
+                                            <button hx-post="/invoices/{{ invoice.id }}/mark-paid" class="p-0.5 text-slate hover:text-sage rounded" title="{{ _('invoice.mark_paid') if _ else 'Bezahlt' }}">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            </button>
+                                            {% endif %}
+                                            <button hx-get="/invoices/preview-modal/{{ invoice.id }}" hx-target="body" hx-swap="beforeend" class="p-0.5 text-slate hover:text-forest dark:hover:text-amber rounded" title="PDF">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quarterly + Summary -->
+        <div class="col-span-3 flex flex-col min-h-0 gap-4">
+            <!-- Quarterly Payments -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-shrink-0 overflow-hidden">
+                <div class="px-3 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-xs">{{ _("dashboard.prepayments") if _ else "Vorauszahlungen" }} {{ current_year }}</h3>
+                </div>
+                <div class="p-3 space-y-2">
+                    {% for payment in quarterly_payments %}
+                    <div
+                        id="quarterly-{{ payment.quarter }}"
+                        class="flex items-center justify-between p-2 rounded-lg {% if payment.paid %}bg-sage/10{% else %}bg-cream dark:bg-neutral-700{% endif %} transition-colors"
+                    >
+                        <div class="flex items-center gap-2">
+                            <button
+                                hx-post="/api/quarterly/{{ current_year }}/{{ payment.quarter }}/toggle?compact=true"
+                                hx-target="#quarterly-{{ payment.quarter }}"
+                                hx-swap="outerHTML"
+                                class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+                                    {% if payment.paid %}
+                                    border-sage bg-sage text-white
+                                    {% else %}
+                                    border-slate/30 hover:border-forest dark:hover:border-amber
+                                    {% endif %}
+                                "
+                            >
+                                {% if payment.paid %}
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                {% endif %}
+                            </button>
+                            <span class="text-xs font-medium text-charcoal dark:text-white">Q{{ payment.quarter }}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-mono text-xs font-semibold {% if payment.paid %}text-sage{% else %}text-charcoal dark:text-white{% endif %}">
+                                €{{ "{:,.0f}".format(payment.amount).replace(",", ".") }}
+                            </p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 font-mono">{{ payment.due_date.strftime('%d.%m') }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <!-- Total -->
+                    <div class="pt-2 border-t border-cream-dark dark:border-neutral-700 flex items-center justify-between">
+                        <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.total_prepayments") if _ else "Gesamt" }}</span>
+                        <span class="font-mono text-xs font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(total_quarterly).replace(",", ".") }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Annual Tax Summary Card - Swiss Ledger Style -->
+            {% if tax_estimate %}
+            <div id="annual-tax-summary" class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col overflow-hidden">
+                <!-- Header with year badge -->
+                <div class="px-4 py-3 border-b border-cream-dark dark:border-neutral-700 bg-gradient-to-r from-cream/50 to-transparent dark:from-neutral-700/50 flex items-center justify-between">
+                    <h3 class="font-display text-sm font-semibold text-charcoal dark:text-white tracking-tight">{{ _("tax.annual_return") if _ else "Steuererklärung" }}</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono text-slate dark:text-gray-400 bg-cream dark:bg-neutral-700 px-2 py-0.5 rounded">{{ tax_estimate.effective_rate }}% eff.</span>
+                        <span class="text-xs font-bold text-charcoal dark:text-white">{{ current_year }}</span>
+                    </div>
+                </div>
+
+                <!-- Ledger Body -->
+                <div class="flex-1 p-4 flex flex-col">
+                    <!-- Calculation Flow -->
+                    <div class="space-y-0 flex-1">
+                        <!-- Taxable Income - Base -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-slate/20 dark:bg-neutral-600"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.taxable_income") if _ else "Zu verst. Einkommen" }}</span>
+                                </div>
+                                <span class="font-mono text-sm text-charcoal dark:text-white tabular-nums">€{{ "{:,.0f}".format(tax_estimate.taxable_income).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Arrow down indicator -->
+                        <div class="flex items-center gap-3 py-0.5">
+                            <div class="w-1 flex justify-center">
+                                <svg class="w-3 h-3 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 border-t border-dashed border-cream-dark dark:border-neutral-600"></div>
+                        </div>
+
+                        <!-- Income Tax - Debit -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-terracotta/40"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.income_tax") if _ else "Einkommensteuer" }}</span>
+                                </div>
+                                <span class="font-mono text-sm text-terracotta tabular-nums">€{{ "{:,.0f}".format(tax_estimate.einkommensteuer).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Prepayments - Credit -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-sage/40"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.prepayments") if _ else "Vorauszahlungen" }}</span>
+                                </div>
+                                <span class="font-mono text-sm text-sage tabular-nums">−€{{ "{:,.0f}".format(paid_quarterly).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Line - The Finale -->
+                    <div class="mt-auto pt-3 border-t-2 border-charcoal/10 dark:border-neutral-600">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                {% if remaining_income_tax > 0 %}
+                                <div class="w-2 h-2 rounded-full bg-amber animate-pulse"></div>
+                                {% else %}
+                                <div class="w-2 h-2 rounded-full bg-sage"></div>
+                                {% endif %}
+                                <span class="text-xs font-semibold text-charcoal dark:text-white">{{ _("tax.remaining_due") if _ else "Saldo" }}</span>
+                            </div>
+                            {% if remaining_income_tax > 0 %}
+                            <span class="font-mono text-xl font-bold text-amber tabular-nums">€{{ "{:,.0f}".format(remaining_income_tax).replace(",", ".") }}</span>
+                            {% else %}
+                            <span class="font-mono text-xl font-bold text-sage tabular-nums">€0</span>
+                            {% endif %}
+                        </div>
+                        {% if remaining_income_tax > 0 %}
+                        <p class="text-[9px] text-slate dark:text-gray-500 mt-1 ml-4">{{ _("tax.due_with_return") if _ else "Fällig mit Steuererklärung" }}</p>
+                        {% else %}
+                        <p class="text-[9px] text-sage mt-1 ml-4 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {{ _("tax.prepayments_sufficient") if _ else "Vorauszahlungen decken Steuer" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+<div id="expense-form-container"></div>
+<div id="invoice-form-container"></div>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+</style>
+
+<script>
+function switchTab(tab) {
+    const tabs = ['expenses', 'invoices'];
+    tabs.forEach(t => {
+        const tabBtn = document.getElementById('tab-' + t);
+        const content = document.getElementById('content-' + t);
+        if (t === tab) {
+            tabBtn.classList.add('bg-forest/10', 'text-forest', 'dark:bg-amber/20', 'dark:text-amber');
+            tabBtn.classList.remove('text-slate', 'hover:bg-cream-dark', 'dark:hover:bg-neutral-700');
+            content.classList.remove('hidden');
+        } else {
+            tabBtn.classList.remove('bg-forest/10', 'text-forest', 'dark:bg-amber/20', 'dark:text-amber');
+            tabBtn.classList.add('text-slate', 'hover:bg-cream-dark', 'dark:hover:bg-neutral-700');
+            content.classList.add('hidden');
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+{% if chart_has_data %}
+<script>
+    const chartData = {
+        labels: {{ chart_labels | tojson }},
+        actual: {{ actual_income | tojson }},
+        predicted: {{ predicted_income | tojson }},
+        upperBound: {{ upper_bound | tojson }},
+        lowerBound: {{ lower_bound | tojson }},
+        transitionIndex: {{ chart_data.get('transition_index', 0) if chart_data else 0 }}
+    };
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const chartLang = '{{ lang }}';
+
+    function renderCompactChart() {
+        const container = document.getElementById('income-chart');
+        if (!container) return;
+
+        const margin = { top: 15, right: 30, bottom: 30, left: 50 };
+        const width = container.offsetWidth - margin.left - margin.right;
+        const height = 130 - margin.top - margin.bottom;
+
+        d3.select('#income-chart').selectAll('*').remove();
+
+        const svg = d3.select('#income-chart')
+            .append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scalePoint()
+            .domain(chartData.labels)
+            .range([0, width])
+            .padding(0.2);
+
+        const allValues = [
+            ...chartData.actual.filter(d => d !== null),
+            ...chartData.predicted,
+            ...chartData.upperBound
+        ];
+        const maxY = Math.max(...allValues) * 1.1;
+        const y = d3.scaleLinear()
+            .domain([0, maxY])
+            .range([height, 0]);
+
+        const defs = svg.append('defs');
+
+        // Uncertainty gradient
+        const gpGradient = defs.append('linearGradient')
+            .attr('id', 'gpGradientCompact')
+            .attr('x1', '0%').attr('y1', '0%')
+            .attr('x2', '0%').attr('y2', '100%');
+        gpGradient.append('stop').attr('offset', '0%').attr('stop-color', '#d4a853').attr('stop-opacity', 0.25);
+        gpGradient.append('stop').attr('offset', '100%').attr('stop-color', '#d4a853').attr('stop-opacity', 0.02);
+
+        // Actual area gradient
+        const actualGradient = defs.append('linearGradient')
+            .attr('id', 'actualGradientCompact')
+            .attr('x1', '0%').attr('y1', '0%')
+            .attr('x2', '0%').attr('y2', '100%');
+        actualGradient.append('stop').attr('offset', '0%').attr('stop-color', '#1a3a2f').attr('stop-opacity', 0.3);
+        actualGradient.append('stop').attr('offset', '100%').attr('stop-color', '#1a3a2f').attr('stop-opacity', 0);
+
+        // Grid
+        svg.selectAll('.grid-line')
+            .data(y.ticks(3))
+            .enter()
+            .append('line')
+            .attr('x1', 0).attr('x2', width)
+            .attr('y1', d => y(d)).attr('y2', d => y(d))
+            .attr('stroke', isDark ? '#333' : '#f0ede8')
+            .attr('stroke-dasharray', '2,2');
+
+        // Transition point
+        let transitionIdx = chartData.actual.findIndex(d => d === null) - 1;
+        if (transitionIdx < 0) transitionIdx = chartData.actual.length - 1;
+
+        // Uncertainty band
+        const uncertaintyArea = d3.area()
+            .x((d, i) => x(chartData.labels[i]))
+            .y0((d, i) => y(chartData.lowerBound[i]))
+            .y1((d, i) => y(chartData.upperBound[i]))
+            .curve(d3.curveBasis);
+
+        svg.append('path')
+            .datum(chartData.predicted)
+            .attr('fill', 'url(#gpGradientCompact)')
+            .attr('d', uncertaintyArea);
+
+        // Actual area
+        const actualArea = d3.area()
+            .defined(d => d !== null && d > 0)
+            .x((d, i) => x(chartData.labels[i]))
+            .y0(height)
+            .y1(d => y(d))
+            .curve(d3.curveMonotoneX);
+
+        svg.append('path')
+            .datum(chartData.actual)
+            .attr('fill', 'url(#actualGradientCompact)')
+            .attr('d', actualArea);
+
+        // GP mean line
+        const gpLine = d3.line()
+            .x((d, i) => x(chartData.labels[i]))
+            .y(d => y(d))
+            .curve(d3.curveBasis);
+
+        svg.append('path')
+            .datum(chartData.predicted)
+            .attr('fill', 'none')
+            .attr('stroke', '#d4a853')
+            .attr('stroke-width', 2)
+            .attr('d', gpLine);
+
+        // Actual line
+        const actualLine = d3.line()
+            .defined(d => d !== null && d > 0)
+            .x((d, i) => x(chartData.labels[i]))
+            .y(d => y(d))
+            .curve(d3.curveMonotoneX);
+
+        svg.append('path')
+            .datum(chartData.actual)
+            .attr('fill', 'none')
+            .attr('stroke', '#1a3a2f')
+            .attr('stroke-width', 2)
+            .attr('d', actualLine);
+
+        // Now marker
+        if (transitionIdx >= 0 && transitionIdx < chartData.labels.length - 1) {
+            const nowX = x(chartData.labels[transitionIdx]);
+            svg.append('line')
+                .attr('x1', nowX).attr('x2', nowX)
+                .attr('y1', 0).attr('y2', height)
+                .attr('stroke', isDark ? '#64748b' : '#94a3b8')
+                .attr('stroke-width', 1)
+                .attr('stroke-dasharray', '3,3')
+                .attr('opacity', 0.6);
+        }
+
+        // Data points
+        chartData.actual.forEach((d, i) => {
+            if (d !== null && d > 0) {
+                svg.append('circle')
+                    .attr('cx', x(chartData.labels[i]))
+                    .attr('cy', y(d))
+                    .attr('r', 3)
+                    .attr('fill', '#1a3a2f')
+                    .attr('stroke', isDark ? '#252525' : '#fff')
+                    .attr('stroke-width', 1.5);
+            }
+        });
+
+        chartData.predicted.forEach((d, i) => {
+            if (chartData.actual[i] === null && d > 0) {
+                svg.append('circle')
+                    .attr('cx', x(chartData.labels[i]))
+                    .attr('cy', y(d))
+                    .attr('r', 2.5)
+                    .attr('fill', '#d4a853')
+                    .attr('stroke', isDark ? '#252525' : '#fff')
+                    .attr('stroke-width', 1.5);
+            }
+        });
+
+        // X Axis (compact)
+        const xAxis = svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x).tickValues(chartData.labels.filter((_, i) => i % 2 === 0)));
+
+        xAxis.selectAll('text')
+            .style('font-family', 'JetBrains Mono')
+            .style('font-size', '8px')
+            .style('fill', isDark ? '#6b7280' : '#94a3b8');
+
+        svg.selectAll('.domain').attr('stroke', isDark ? '#404040' : '#e0ddd8');
+        svg.selectAll('.tick line').attr('stroke', isDark ? '#404040' : '#e0ddd8');
+
+        // Y Axis (compact)
+        svg.append('g')
+            .call(d3.axisLeft(y).ticks(3).tickFormat(d => '€' + (d/1000).toFixed(0) + 'k'))
+            .selectAll('text')
+            .style('font-family', 'JetBrains Mono')
+            .style('font-size', '8px')
+            .style('fill', isDark ? '#6b7280' : '#94a3b8');
+    }
+
+    renderCompactChart();
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(renderCompactChart, 150);
+    });
+
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+            if (m.attributeName === 'class') setTimeout(renderCompactChart, 350);
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+</script>
+{% endif %}
+{% endblock %}

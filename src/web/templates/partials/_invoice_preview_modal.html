@@ -1,0 +1,148 @@
+{# Invoice Preview Modal with Template Selector #}
+<div id="preview-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
+    <div class="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-cream-dark dark:border-neutral-700">
+            <div>
+                <h2 class="font-display text-xl font-semibold text-charcoal dark:text-white">
+                    {{ _("modal.invoice_preview") if _ else "Rechnungsvorschau" }}
+                </h2>
+                <p class="text-sm text-slate dark:text-gray-400 mt-0.5">
+                    {{ invoice.invoice_number }} &bull; {{ invoice.client }}
+                </p>
+            </div>
+            <button
+                onclick="document.getElementById('preview-modal').remove()"
+                class="p-2 hover:bg-cream dark:hover:bg-neutral-700 rounded-lg transition-colors"
+            >
+                <svg class="w-5 h-5 text-slate dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Template Selector Sidebar -->
+            <div class="w-64 border-r border-cream-dark dark:border-neutral-700 p-4 bg-cream/50 dark:bg-neutral-900/50 overflow-y-auto">
+                <h3 class="text-xs font-semibold text-slate dark:text-gray-400 uppercase tracking-wider mb-4">
+                    {{ _("modal.select_template") if _ else "Vorlage wählen" }}
+                </h3>
+                <div class="space-y-2">
+                    {% for key, tmpl in templates.items() %}
+                    <button
+                        hx-get="/invoices/{{ invoice.id }}/preview?template={{ key }}"
+                        hx-target="#invoice-preview-area"
+                        hx-swap="innerHTML"
+                        class="template-btn w-full text-left p-3 rounded-lg border-2 transition-all {{ 'border-forest bg-forest/10 dark:bg-forest/20' if key == selected_template else 'border-transparent bg-white dark:bg-neutral-800 hover:border-cream-dark dark:hover:border-neutral-600' }}"
+                        data-template="{{ key }}"
+                        onclick="selectTemplate(this)"
+                    >
+                        <p class="font-medium text-charcoal dark:text-white text-sm">{{ tmpl.name }}</p>
+                        <p class="text-xs text-slate dark:text-gray-500 mt-0.5">{{ tmpl.description }}</p>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <hr class="my-4 border-cream-dark dark:border-neutral-700">
+
+                <!-- Actions -->
+                <div class="space-y-2">
+                    <button
+                        onclick="printInvoice()"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-forest hover:bg-forest-light text-white font-medium rounded-lg transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        {{ _("modal.print_pdf") if _ else "Drucken / PDF" }}
+                    </button>
+                    <button
+                        onclick="document.getElementById('preview-modal').remove()"
+                        class="w-full px-4 py-2 text-slate dark:text-gray-400 hover:text-charcoal dark:hover:text-white font-medium rounded-lg border border-cream-dark dark:border-neutral-700 hover:bg-cream dark:hover:bg-neutral-700 transition-colors"
+                    >
+                        {{ _("modal.close") if _ else "Schließen" }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Area -->
+            <div class="flex-1 overflow-auto p-6 bg-slate/10 dark:bg-neutral-900">
+                <div id="invoice-preview-area" class="mx-auto shadow-xl" style="width: 210mm;">
+                    <!-- Initial preview loaded via HTMX -->
+                    <div class="bg-white p-8 flex items-center justify-center" style="min-height: 297mm;">
+                        <div class="text-center">
+                            <div class="animate-spin w-8 h-8 border-2 border-forest border-t-transparent rounded-full mx-auto mb-4"></div>
+                            <p class="text-slate">{{ _("modal.loading_preview") if _ else "Vorschau wird geladen..." }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load initial preview
+    htmx.ajax('GET', '/invoices/{{ invoice.id }}/preview?template={{ selected_template }}', '#invoice-preview-area');
+
+    function selectTemplate(btn) {
+        // Update active state
+        document.querySelectorAll('.template-btn').forEach(b => {
+            b.classList.remove('border-forest', 'bg-forest/10', 'dark:bg-forest/20');
+            b.classList.add('border-transparent', 'bg-white', 'dark:bg-neutral-800');
+        });
+        btn.classList.remove('border-transparent', 'bg-white', 'dark:bg-neutral-800');
+        btn.classList.add('border-forest', 'bg-forest/10', 'dark:bg-forest/20');
+    }
+
+    function printInvoice() {
+        const printArea = document.getElementById('invoice-preview-area');
+        const printWindow = window.open('', '_blank');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>{{ _("nav.invoices") if _ else "Rechnung" }} {{ invoice.invoice_number }}</title>
+                <script src="https://cdn.tailwindcss.com"><\/script>
+                <style>
+                    @page { size: A4; margin: 0; }
+                    @media print {
+                        body { margin: 0; padding: 0; }
+                        .invoice-template { box-shadow: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${printArea.innerHTML}
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('preview-modal');
+            if (modal) modal.remove();
+        }
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('preview-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+</script>

@@ -1,0 +1,109 @@
+services:
+  # =============================================================================
+  # Main Application
+  # =============================================================================
+  app:
+    build:
+      context: .
+      target: production
+      args:
+        # Set to "false" to build without LLM support (smaller image)
+        ENABLE_LLM: "true"
+    container_name: FiscFox
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist SQLite database to separate data directory
+      - ./data:/app/data
+      # Mount LLM models directory (download GGUF files here)
+      # Expected files:
+      #   - Qwen3-4B-Instruct-2507-Q4_K_M.gguf (standard, ~2.5GB)
+      #   - Phi-3.5-mini-instruct-Q4_K_M.gguf (lite, ~2.3GB)
+      - ./data/models/llm:/opt/models/llm:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_PATH=/app/data/FiscFox.db
+      # LLM Configuration
+      - FISCFOX_LLM_ENABLED=true
+      - FISCFOX_LLM_MODEL_SIZE=standard
+      - FISCFOX_LLM_MODELS_DIR=/opt/models/llm
+      - FISCFOX_LLM_CONTEXT_LENGTH=8192
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # LLM inference is CPU-intensive, allocate appropriate resources
+    # Qwen3-4B only needs ~2.5GB model + overhead
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  # =============================================================================
+  # Development Mode
+  # =============================================================================
+  dev:
+    build:
+      context: .
+      target: development
+      args:
+        ENABLE_LLM: "true"
+    container_name: FiscFox-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source for hot reload
+      - ./src:/app/src:ro
+      # Persist SQLite database to separate data directory
+      - ./data:/app/data
+      # Mount LLM models directory
+      - ./data/models/llm:/opt/models/llm:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_PATH=/app/data/FiscFox.db
+      # LLM Configuration (lite mode for faster dev iteration)
+      - FISCFOX_LLM_ENABLED=true
+      - FISCFOX_LLM_MODEL_SIZE=lite
+      - FISCFOX_LLM_MODELS_DIR=/opt/models/llm
+      - FISCFOX_LLM_CONTEXT_LENGTH=4096
+    profiles:
+      - dev
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 3G
+
+  # =============================================================================
+  # Lite Mode (No LLM - smaller image, less resources)
+  # =============================================================================
+  app-lite:
+    build:
+      context: .
+      target: production
+      args:
+        ENABLE_LLM: "false"
+    container_name: FiscFox-lite
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_PATH=/app/data/FiscFox.db
+      - FISCFOX_LLM_ENABLED=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - lite

@@ -1,0 +1,126 @@
+<form
+    hx-post="/gifts/add"
+    hx-target="#gift-list"
+    hx-swap="afterbegin"
+    hx-on::after-request="this.reset(); document.getElementById('gift-form-container').innerHTML = '';"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-amber dark:border-amber/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("gift.new_gift") if _ else "Neues Geschenk erfassen" }}</h3>
+        <button
+            type="button"
+            onclick="document.getElementById('gift-form-container').innerHTML = ''"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.date") if _ else "Datum" }}</label>
+            <input
+                type="date"
+                name="date"
+                required
+                value="{{ today }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Recipient Name -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("gift.recipient") if _ else "Empfänger" }}</label>
+            <input
+                type="text"
+                name="recipient_name"
+                required
+                list="recipient-suggestions"
+                placeholder="{{ _('gift.recipient_placeholder') if _ else 'z.B. Max Mustermann' }}"
+                hx-get="/gifts/recipient/{value}/status"
+                hx-trigger="blur changed delay:500ms"
+                hx-target="#recipient-status"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+            <datalist id="recipient-suggestions">
+                {% for recipient in recipients %}
+                <option value="{{ recipient }}">
+                {% endfor %}
+            </datalist>
+        </div>
+
+        <!-- Recipient Company -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("gift.company") if _ else "Firma (optional)" }}</label>
+            <input
+                type="text"
+                name="recipient_company"
+                placeholder="{{ _('gift.company_placeholder') if _ else 'z.B. Musterfirma GmbH' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Amount -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("gift.amount_net") if _ else "Nettobetrag (€)" }}</label>
+            <input
+                type="number"
+                name="amount_net"
+                step="0.01"
+                min="0.01"
+                required
+                placeholder="0,00"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Description -->
+        <div class="col-span-2 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("gift.description") if _ else "Beschreibung" }}</label>
+            <input
+                type="text"
+                name="description"
+                required
+                placeholder="{{ _('gift.description_placeholder') if _ else 'z.B. Weihnachtsgeschenk, Weinflasche' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Occasion -->
+        <div class="col-span-2 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("gift.occasion") if _ else "Anlass (optional)" }}</label>
+            <input
+                type="text"
+                name="occasion"
+                placeholder="{{ _('gift.occasion_placeholder') if _ else 'z.B. Geburtstag, Projektabschluss' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+    </div>
+
+    <!-- Recipient Status Preview -->
+    <div id="recipient-status"></div>
+
+    <!-- Limit Warning -->
+    <div class="bg-amber/10 border border-amber rounded-lg p-3 text-sm">
+        <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-amber flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="font-medium text-charcoal dark:text-white">{{ _("gift.limit_info") if _ else "Geschenkegrenze" }}: €{{ limit }}</p>
+                <p class="text-slate dark:text-gray-400">{{ _("gift.limit_explanation") if _ else "Pro Empfänger und Jahr. Bei Überschreitung ist der gesamte Betrag nicht abzugsfähig." }}</p>
+            </div>
+        </div>
+    </div>
+
+    <button
+        type="submit"
+        class="w-full py-3 bg-amber hover:bg-amber-dark text-forest font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+    >
+        {{ _("gift.save") if _ else "Geschenk speichern" }}
+    </button>
+</form>

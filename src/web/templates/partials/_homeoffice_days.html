@@ -1,0 +1,41 @@
+<div class="space-y-4">
+    <!-- Summary Card -->
+    <div class="bg-forest/5 dark:bg-forest/10 rounded-xl p-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("homeoffice.annual_deduction") if _ else "Jahresabzug" }}</p>
+                <p class="font-mono text-2xl font-bold text-forest dark:text-sage">
+                    €{{ "{:,.2f}".format(summary.deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                </p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate dark:text-gray-400">{{ summary.day_count }}/{{ summary.max_days }} {{ _("homeoffice.days") if _ else "Tage" }}</p>
+                <p class="text-sm text-charcoal dark:text-white">{{ summary.method }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Days Table -->
+    <table class="w-full">
+        <thead class="bg-cream dark:bg-neutral-700">
+            <tr class="text-left text-xs font-medium text-slate dark:text-gray-400 uppercase tracking-wider">
+                <th class="py-3 px-4">{{ _("form.date") if _ else "Datum" }}</th>
+                <th class="py-3 px-4">{{ _("homeoffice.weekday") if _ else "Wochentag" }}</th>
+                <th class="py-3 px-4">{{ _("homeoffice.notes") if _ else "Notiz" }}</th>
+                <th class="py-3 px-4 text-right">{{ _("homeoffice.amount") if _ else "Betrag" }}</th>
+                <th class="py-3 px-4 text-right"></th>
+            </tr>
+        </thead>
+        <tbody id="homeoffice-day-list">
+            {% for day in days %}
+            {% include "partials/_homeoffice_day_row.html" %}
+            {% else %}
+            <tr>
+                <td colspan="5" class="py-8 text-center text-slate dark:text-gray-400">
+                    {{ _("homeoffice.no_days") if _ else "Keine Homeoffice-Tage erfasst" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

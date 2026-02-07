@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('de') }}" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FiscFox{% endblock %} | {{ _("nav.tax_management") if _ else "Freiberufler Steuerverwaltung" }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+    <!-- Local Fonts (offline) -->
+    <link rel="stylesheet" href="/static/css/fonts.css">
+
+    <!-- TailwindCSS (built locally, offline) -->
+    <link rel="stylesheet" href="/static/css/tailwind.css">
+
+    <!-- HTMX (local, offline) -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- D3.js for data visualization (local, offline) -->
+    <script src="/static/js/d3.min.js"></script>
+
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4a853; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #b8923d; }
+
+        /* Paper texture overlay */
+        .paper-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Smooth HTMX transitions */
+        .htmx-settling { transition: opacity 200ms ease-out; }
+        .htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
+
+        /* ===== PAGE TRANSITION ANIMATIONS ===== */
+
+        /* Main page entrance animation */
+        @keyframes pageEnter {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hero/header entrance - slightly more dramatic */
+        @keyframes heroEnter {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Card entrance with subtle scale */
+        @keyframes cardEnter {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Subtle fade for content sections */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Page content wrapper animation */
+        .page-enter {
+            animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Header/hero section animation */
+        .hero-enter {
+            animation: heroEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Card animations with stagger support */
+        .card-enter {
+            opacity: 0;
+            animation: cardEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        /* Staggered card delays */
+        .card-enter:nth-child(1) { animation-delay: 0.05s; }
+        .card-enter:nth-child(2) { animation-delay: 0.1s; }
+        .card-enter:nth-child(3) { animation-delay: 0.15s; }
+        .card-enter:nth-child(4) { animation-delay: 0.2s; }
+        .card-enter:nth-child(5) { animation-delay: 0.25s; }
+        .card-enter:nth-child(6) { animation-delay: 0.3s; }
+
+        /* Table/list row entrance */
+        @keyframes rowEnter {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .row-enter {
+            opacity: 0;
+            animation: rowEnter 0.3s ease-out forwards;
+        }
+
+        /* Staggered row delays */
+        .stagger-rows > *:nth-child(1) { animation-delay: 0.02s; }
+        .stagger-rows > *:nth-child(2) { animation-delay: 0.04s; }
+        .stagger-rows > *:nth-child(3) { animation-delay: 0.06s; }
+        .stagger-rows > *:nth-child(4) { animation-delay: 0.08s; }
+        .stagger-rows > *:nth-child(5) { animation-delay: 0.1s; }
+        .stagger-rows > *:nth-child(6) { animation-delay: 0.12s; }
+        .stagger-rows > *:nth-child(7) { animation-delay: 0.14s; }
+        .stagger-rows > *:nth-child(8) { animation-delay: 0.16s; }
+        .stagger-rows > *:nth-child(9) { animation-delay: 0.18s; }
+        .stagger-rows > *:nth-child(10) { animation-delay: 0.2s; }
+
+        /* Number animations */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-count { animation: countUp 0.4s ease-out forwards; }
+
+        /* Stagger children animations */
+        .stagger-children > * {
+            opacity: 0;
+            animation: fadeSlideUp 0.5s ease-out forwards;
+        }
+        .stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+        .stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+        .stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+        .stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+        .stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+        .stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+        .stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+        .stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dark mode transitions */
+        * { transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+
+        /* Form focus styles */
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #d4a853;
+        }
+
+        /* View Transitions API support for modern browsers */
+        @supports (view-transition-name: none) {
+            ::view-transition-old(root) {
+                animation: 0.25s ease-out both fade-out;
+            }
+            ::view-transition-new(root) {
+                animation: 0.25s ease-out both fade-in;
+            }
+            @keyframes fade-out {
+                to { opacity: 0; }
+            }
+            @keyframes fade-in {
+                from { opacity: 0; }
+            }
+        }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-cream dark:bg-neutral-900 font-sans text-charcoal dark:text-gray-100 antialiased overflow-hidden">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation -->
+        {% include "components/_nav.html" %}
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 ml-64 p-8 relative paper-bg overflow-hidden flex flex-col">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- AI Chat Interface -->
+    {% include "partials/_ai_chat.html" %}
+
+    <!-- Modal Container for HTMX -->
+    <div id="modal-container"></div>
+
+    <!-- Dark Mode Toggle Script -->
+    <script>
+        // Check for saved theme or system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark')
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        }
+
+        // Toggle main content scroll when form containers have content
+        function updateMainScroll() {
+            const main = document.getElementById('main-content');
+            if (!main) return;
+
+            const formContainers = [
+                'expense-form-container',
+                'health-insurance-form-container',
+                'invoice-form-container',
+                'upload-form-container'
+            ];
+
+            const hasOpenForm = formContainers.some(id => {
+                const el = document.getElementById(id);
+                return el && el.innerHTML.trim() !== '';
+            });
+
+            if (hasOpenForm) {
+                main.classList.remove('overflow-hidden');
+                main.classList.add('overflow-y-auto');
+            } else {
+                main.classList.remove('overflow-y-auto');
+                main.classList.add('overflow-hidden');
+            }
+        }
+
+        // Listen for HTMX swaps
+        document.addEventListener('htmx:afterSwap', updateMainScroll);
+        document.addEventListener('htmx:afterSettle', updateMainScroll);
+
+        // Initial check
+        document.addEventListener('DOMContentLoaded', updateMainScroll);
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

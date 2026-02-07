@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("tax.page_title") if _ else "Steuern" }}{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto h-[calc(100vh-120px)] flex flex-col page-enter">
+
+    <!-- Compact Header Row -->
+    <header class="flex items-center justify-between mb-4 flex-shrink-0 hero-enter">
+        <div class="flex items-center gap-6">
+            <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+                {{ _("tax.tax_overview") if _ else "Steuerübersicht" }}
+            </h1>
+            <span class="px-2.5 py-1 bg-cream/70 dark:bg-neutral-700 rounded-lg text-sm font-semibold text-charcoal dark:text-white">
+                {{ current_year }}
+            </span>
+        </div>
+        <div class="flex items-center gap-2 text-sm text-slate dark:text-gray-400">
+            <span>{{ _("tax.as_of") if _ else "Stand" }}</span>
+            <span class="font-mono text-charcoal dark:text-white">{{ today.strftime('%d.%m.%Y') }}</span>
+        </div>
+    </header>
+
+    <!-- Stats Strip -->
+    <div class="grid grid-cols-4 gap-3 mb-4 stagger-children">
+            <!-- Estimated Profit -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-sage transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.profit") if _ else "Gewinn" }}</p>
+                    <p class="font-mono text-lg font-semibold text-sage">€{{ "{:,.0f}".format(tax_estimate.taxable_income).replace(",", ".") }}</p>
+                </div>
+                <div class="w-8 h-8 bg-sage/10 rounded-md flex items-center justify-center">
+                    <svg class="w-4 h-4 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Income Tax -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-terracotta transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.income_tax") if _ else "Einkommensteuer" }}</p>
+                    <p class="font-mono text-lg font-semibold text-terracotta">€{{ "{:,.0f}".format(tax_estimate.einkommensteuer).replace(",", ".") }}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-amber text-xs font-mono font-medium">{{ tax_estimate.effective_rate }}%</span>
+                    <p class="text-[9px] text-slate dark:text-gray-500">{{ _("tax.eff") if _ else "eff." }}</p>
+                </div>
+            </div>
+
+            <!-- VAT Liability -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark dark:border-neutral-700 p-3 flex items-center justify-between group hover:border-forest dark:hover:border-amber transition-colors">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-slate dark:text-gray-500 font-medium">{{ _("tax.vat_liability") if _ else "USt-Zahllast" }}</p>
+                    <p class="font-mono text-lg font-semibold text-charcoal dark:text-white">€{{ "{:,.0f}".format(tax_estimate.umsatzsteuer_liability).replace(",", ".") }}</p>
+                </div>
+                <div class="w-8 h-8 bg-forest/10 dark:bg-amber/10 rounded-md flex items-center justify-center">
+                    <svg class="w-4 h-4 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Next Deadline -->
+            <div class="bg-gradient-to-r from-forest to-forest-light dark:from-neutral-700 dark:to-neutral-600 rounded-lg p-3 flex items-center justify-between text-white">
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider text-white/70 font-medium">{{ _("tax.next_deadline") if _ else "Nächste Frist" }}</p>
+                    {% if next_deadline %}
+                    <p class="font-mono text-lg font-semibold">{{ next_deadline.date.strftime('%d.%m.') }}</p>
+                    {% else %}
+                    <p class="font-mono text-lg font-semibold">-</p>
+                    {% endif %}
+                </div>
+                {% if next_deadline %}
+                <div class="text-right">
+                    <span class="text-amber text-xs font-medium">
+                        {% if next_deadline.days_until == 0 %}{{ _("tax.today") if _ else "Heute!" }}
+                        {% elif next_deadline.days_until == 1 %}{{ _("tax.tomorrow") if _ else "Morgen" }}
+                        {% else %}{{ next_deadline.days_until }}d{% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="flex-1 min-h-0 grid grid-cols-12 gap-4">
+
+        <!-- Left Column: Deadlines + Quarterly -->
+        <div class="col-span-5 flex flex-col min-h-0 gap-4">
+            <!-- Tax Deadlines -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30 flex items-center justify-between flex-shrink-0">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("nav.tax_deadlines") if _ else "Steuertermine" }}</h3>
+                    <div class="flex gap-3">
+                        <span class="flex items-center gap-1 text-[9px] text-slate dark:text-gray-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-forest"></span>USt
+                        </span>
+                        <span class="flex items-center gap-1 text-[9px] text-slate dark:text-gray-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-terracotta"></span>ESt
+                        </span>
+                        <span class="flex items-center gap-1 text-[9px] text-slate dark:text-gray-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>ZSM
+                        </span>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+                    {% for deadline in deadlines %}
+                    <div
+                        id="deadline-row-{{ deadline.deadline_id }}"
+                        class="flex items-center gap-3 p-2.5 rounded-lg {% if deadline.completed %}bg-sage/5{% elif deadline.days_until <= 7 %}bg-terracotta/5{% elif deadline.days_until <= 30 %}bg-amber/5{% else %}bg-cream/50 dark:bg-neutral-700/50{% endif %} hover:shadow-sm transition-all group"
+                    >
+                        <!-- Type indicator -->
+                        <div class="w-1 h-10 rounded-full flex-shrink-0
+                            {% if deadline.type == 'umsatzsteuer' %}bg-forest
+                            {% elif deadline.type == 'einkommensteuer' %}bg-terracotta
+                            {% elif deadline.type == 'zusammenfassende_meldung' %}bg-blue-500
+                            {% else %}bg-slate{% endif %}
+                        "></div>
+
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs font-medium text-charcoal dark:text-white truncate">{{ deadline.name }}</p>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-medium flex-shrink-0
+                                    {% if deadline.type == 'umsatzsteuer' %}bg-forest/10 text-forest dark:bg-amber/20 dark:text-amber
+                                    {% elif deadline.type == 'einkommensteuer' %}bg-terracotta/10 text-terracotta
+                                    {% elif deadline.type == 'zusammenfassende_meldung' %}bg-blue-500/10 text-blue-600 dark:text-blue-400
+                                    {% else %}bg-slate/10 text-slate{% endif %}">
+                                    {% if deadline.type == 'umsatzsteuer' %}USt
+                                    {% elif deadline.type == 'einkommensteuer' %}ESt
+                                    {% elif deadline.type == 'zusammenfassende_meldung' %}ZSM
+                                    {% else %}{{ deadline.type[:3]|upper }}{% endif %}
+                                </span>
+                            </div>
+                            <p class="text-[10px] text-slate dark:text-gray-400 truncate mt-0.5">{{ deadline.description }}</p>
+                        </div>
+
+                        <!-- Date & Status -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="text-right">
+                                <p class="font-mono text-xs font-semibold text-charcoal dark:text-white">{{ deadline.date.strftime('%d.%m') }}</p>
+                                <p class="text-[9px] {% if deadline.completed %}text-sage{% elif deadline.days_until <= 7 %}text-terracotta{% elif deadline.days_until <= 30 %}text-amber-dark dark:text-amber{% else %}text-slate{% endif %}">
+                                    {% if deadline.completed %}{{ _("deadline.done") if _ else "Erledigt" }}
+                                    {% elif deadline.days_until == 0 %}{{ _("tax.today") if _ else "Heute!" }}
+                                    {% elif deadline.days_until < 0 %}{{ deadline.days_until|abs }}d {{ _("tax.overdue") if _ else "über" }}
+                                    {% else %}{{ deadline.days_until }}d{% endif %}
+                                </p>
+                            </div>
+                            {% if deadline.deadline_id %}
+                            <button
+                                hx-post="/api/deadline/{{ deadline.deadline_id }}/toggle"
+                                hx-target="#deadline-row-{{ deadline.deadline_id }}"
+                                hx-swap="outerHTML"
+                                class="w-5 h-5 rounded border-2 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100
+                                    {% if deadline.completed %}
+                                    border-sage bg-sage text-white opacity-100
+                                    {% else %}
+                                    border-slate/30 hover:border-forest dark:hover:border-amber
+                                    {% endif %}
+                                "
+                            >
+                                {% if deadline.completed %}
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                {% endif %}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Quarterly Payments Grid -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-shrink-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30 flex items-center justify-between">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("tax.prepayments") if _ else "Vorauszahlungen" }}</h3>
+                    <span class="font-mono text-xs text-slate dark:text-gray-400">{{ _("label.total") if _ else "Gesamt" }}: €{{ "{:,.0f}".format(total_quarterly).replace(",", ".") }}</span>
+                </div>
+                <div class="p-3 grid grid-cols-4 gap-2">
+                    {% for payment in quarterly_payments %}
+                    <div
+                        id="quarterly-row-{{ payment.quarter }}"
+                        class="p-2.5 rounded-lg text-center {% if payment.paid %}bg-sage/10{% else %}bg-cream dark:bg-neutral-700{% endif %} transition-colors"
+                    >
+                        <div class="flex items-center justify-center gap-1.5 mb-1.5">
+                            <button
+                                hx-post="/api/quarterly/{{ current_year }}/{{ payment.quarter }}/toggle"
+                                hx-target="#quarterly-row-{{ payment.quarter }}"
+                                hx-swap="outerHTML"
+                                class="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors
+                                    {% if payment.paid %}
+                                    border-sage bg-sage text-white
+                                    {% else %}
+                                    border-slate/30 hover:border-forest dark:hover:border-amber
+                                    {% endif %}
+                                "
+                            >
+                                {% if payment.paid %}
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                {% endif %}
+                            </button>
+                            <span class="text-xs font-semibold {% if payment.paid %}text-sage{% else %}text-charcoal dark:text-white{% endif %}">Q{{ payment.quarter }}</span>
+                        </div>
+                        <p class="font-mono text-sm font-semibold {% if payment.paid %}text-sage{% else %}text-charcoal dark:text-white{% endif %}">
+                            €{{ "{:,.0f}".format(payment.amount).replace(",", ".") }}
+                        </p>
+                        <p class="text-[9px] text-slate dark:text-gray-400 font-mono mt-0.5">{{ payment.due_date.strftime('%d.%m') }}</p>
+                        {% if not payment.paid %}
+                        <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-medium
+                            {% if payment.days_until is not none and payment.days_until < 0 %}bg-terracotta/10 text-terracotta
+                            {% elif payment.days_until is not none and payment.days_until <= 30 %}bg-amber/10 text-amber-dark dark:text-amber
+                            {% else %}bg-slate/10 text-slate{% endif %}
+                        ">
+                            {% if payment.days_until is not none and payment.days_until < 0 %}{{ _("quarterly.overdue") if _ else "Überfällig" }}
+                            {% elif payment.days_until is not none and payment.days_until <= 30 %}{{ payment.days_until }}d
+                            {% else %}{{ _("quarterly.pending") if _ else "Offen" }}{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Column: Tax Breakdown + USt -->
+        <div class="col-span-4 flex flex-col min-h-0 gap-4">
+            <!-- Tax Breakdown Visualization -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("tax.breakdown") if _ else "Steueraufschlüsselung" }}</h3>
+                </div>
+                <div class="flex-1 p-4 flex flex-col justify-center">
+                    <!-- Visual Tax Flow -->
+                    <div class="space-y-4">
+                        <!-- Revenue -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-20 text-right">
+                                <p class="text-[10px] text-slate dark:text-gray-400 uppercase">{{ _("tax.revenue") if _ else "Einnahmen" }}</p>
+                            </div>
+                            <div class="flex-1 h-6 bg-sage/20 rounded-full overflow-hidden relative">
+                                <div class="absolute inset-y-0 left-0 bg-sage rounded-full" style="width: 100%"></div>
+                                <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold text-sage-dark">
+                                    €{{ "{:,.0f}".format(eur_preview.einnahmen).replace(",", ".") }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Expenses -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-20 text-right">
+                                <p class="text-[10px] text-slate dark:text-gray-400 uppercase">{{ _("tax.expenses") if _ else "Ausgaben" }}</p>
+                            </div>
+                            {% set expense_pct = (eur_preview.ausgaben / eur_preview.einnahmen * 100) if eur_preview.einnahmen > 0 else 0 %}
+                            <div class="flex-1 h-6 bg-terracotta/20 rounded-full overflow-hidden relative">
+                                <div class="absolute inset-y-0 left-0 bg-terracotta rounded-full" style="width: {{ expense_pct }}%"></div>
+                                <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold {% if expense_pct > 50 %}text-white{% else %}text-terracotta{% endif %}">
+                                    €{{ "{:,.0f}".format(eur_preview.ausgaben).replace(",", ".") }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-20"></div>
+                            <div class="flex-1 border-t-2 border-dashed border-cream-dark dark:border-neutral-600"></div>
+                        </div>
+
+                        <!-- Profit -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-20 text-right">
+                                <p class="text-[10px] text-slate dark:text-gray-400 uppercase">{{ _("tax.profit") if _ else "Gewinn" }}</p>
+                            </div>
+                            {% set profit_pct = (eur_preview.gewinn / eur_preview.einnahmen * 100) if eur_preview.einnahmen > 0 else 0 %}
+                            <div class="flex-1 h-6 bg-forest/20 dark:bg-amber/20 rounded-full overflow-hidden relative">
+                                <div class="absolute inset-y-0 left-0 bg-forest dark:bg-amber rounded-full" style="width: {{ profit_pct }}%"></div>
+                                <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold {% if profit_pct > 50 %}text-white{% else %}text-forest dark:text-amber{% endif %}">
+                                    €{{ "{:,.0f}".format(eur_preview.gewinn).replace(",", ".") }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Tax -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-20 text-right">
+                                <p class="text-[10px] text-slate dark:text-gray-400 uppercase">{{ _("tax.income_tax") if _ else "Est" }}</p>
+                            </div>
+                            {% set tax_pct = (tax_estimate.einkommensteuer / eur_preview.einnahmen * 100) if eur_preview.einnahmen > 0 else 0 %}
+                            <div class="flex-1 h-6 bg-charcoal/10 dark:bg-white/10 rounded-full overflow-hidden relative">
+                                <div class="absolute inset-y-0 left-0 bg-charcoal dark:bg-white/80 rounded-full" style="width: {{ tax_pct }}%"></div>
+                                <span class="absolute inset-0 flex items-center justify-center font-mono text-[10px] font-semibold {% if tax_pct > 50 %}text-white dark:text-charcoal{% else %}text-charcoal dark:text-white{% endif %}">
+                                    €{{ "{:,.0f}".format(tax_estimate.einkommensteuer).replace(",", ".") }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="mt-4 pt-4 border-t border-cream-dark dark:border-neutral-700 grid grid-cols-3 gap-3">
+                        <div class="text-center">
+                            <p class="font-mono text-lg font-bold text-forest dark:text-amber">{{ "{:.0f}".format(profit_pct) }}%</p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 uppercase">{{ _("tax.margin") if _ else "Marge" }}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-mono text-lg font-bold text-terracotta">{{ tax_estimate.effective_rate }}%</p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 uppercase">{{ _("tax.eff_rate") if _ else "Eff. Satz" }}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-mono text-lg font-bold text-charcoal dark:text-white">{{ "{:.0f}".format(tax_pct) }}%</p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 uppercase">{{ _("tax.burden") if _ else "Steuerlast" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USt-Voranmeldung -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-shrink-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30 flex items-center justify-between">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("tax.vat_advance") if _ else "USt-Voranmeldung" }}</h3>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber/10 text-amber-dark dark:text-amber">{{ current_period }}</span>
+                </div>
+                <div class="p-3">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="text-center p-2 bg-sage/5 dark:bg-sage/10 rounded-lg">
+                            <p class="font-mono text-sm font-semibold text-sage">€{{ "{:,.0f}".format(ust_summary.collected).replace(",", ".") }}</p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 mt-0.5">{{ _("tax.collected") if _ else "Eingenommen" }}</p>
+                        </div>
+                        <div class="text-center p-2 bg-terracotta/5 dark:bg-terracotta/10 rounded-lg">
+                            <p class="font-mono text-sm font-semibold text-terracotta">€{{ "{:,.0f}".format(ust_summary.vorsteuer).replace(",", ".") }}</p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 mt-0.5">{{ _("tax.vorsteuer") if _ else "Vorsteuer" }}</p>
+                        </div>
+                        <div class="text-center p-2 {% if ust_summary.zahllast > 0 %}bg-charcoal/5 dark:bg-white/5{% else %}bg-sage/10{% endif %} rounded-lg">
+                            <p class="font-mono text-sm font-semibold {% if ust_summary.zahllast > 0 %}text-charcoal dark:text-white{% else %}text-sage{% endif %}">
+                                €{{ "{:,.0f}".format(ust_summary.zahllast).replace(",", ".") }}
+                            </p>
+                            <p class="text-[9px] text-slate dark:text-gray-400 mt-0.5">{{ _("tax.zahllast") if _ else "Zahllast" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: EÜR + Annual Summary -->
+        <div class="col-span-3 flex flex-col min-h-0 gap-4">
+            <!-- EÜR Preview -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-shrink-0 overflow-hidden">
+                <div class="px-4 py-2 border-b border-cream-dark dark:border-neutral-700 bg-cream-dark/30 dark:bg-neutral-700/30">
+                    <h3 class="font-semibold text-charcoal dark:text-white text-sm">{{ _("tax.eur_preview") if _ else "EÜR" }} {{ current_year }}</h3>
+                </div>
+                <div class="p-3 space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-sage/5 dark:bg-sage/10 rounded-lg">
+                        <span class="text-xs text-slate dark:text-gray-400">{{ _("tax.income") if _ else "Einnahmen" }}</span>
+                        <span class="font-mono text-sm font-semibold text-sage">€{{ "{:,.0f}".format(eur_preview.einnahmen).replace(",", ".") }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-terracotta/5 dark:bg-terracotta/10 rounded-lg">
+                        <span class="text-xs text-slate dark:text-gray-400">{{ _("tax.expenses") if _ else "Ausgaben" }}</span>
+                        <span class="font-mono text-sm font-semibold text-terracotta">−€{{ "{:,.0f}".format(eur_preview.ausgaben).replace(",", ".") }}</span>
+                    </div>
+                    <div class="border-t border-cream-dark dark:border-neutral-700 pt-2 flex items-center justify-between">
+                        <span class="text-xs font-medium text-charcoal dark:text-white">{{ _("tax.profit") if _ else "Gewinn" }}</span>
+                        <span class="font-mono text-base font-bold text-forest dark:text-amber">€{{ "{:,.0f}".format(eur_preview.gewinn).replace(",", ".") }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Annual Tax Summary - Swiss Ledger Style -->
+            <div id="annual-tax-summary" class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 flex-1 flex flex-col overflow-hidden">
+                <!-- Header with year badge and progress -->
+                <div class="px-4 py-3 border-b border-cream-dark dark:border-neutral-700 bg-gradient-to-r from-cream/50 to-transparent dark:from-neutral-700/50 flex items-center justify-between">
+                    <h3 class="font-display text-sm font-semibold text-charcoal dark:text-white tracking-tight">{{ _("tax.annual_return") if _ else "Steuererklärung" }}</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono text-slate dark:text-gray-400 bg-cream dark:bg-neutral-700 px-2 py-0.5 rounded">{{ tax_estimate.effective_rate }}% eff.</span>
+                        <!-- Progress Ring -->
+                        {% set paid_pct = (paid_quarterly / tax_estimate.einkommensteuer * 100) if tax_estimate.einkommensteuer > 0 else 0 %}
+                        <div class="relative w-8 h-8">
+                            <svg class="w-8 h-8 -rotate-90" viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" class="text-cream-dark dark:text-neutral-600" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" class="text-amber" stroke-width="3"
+                                    stroke-dasharray="{{ [paid_pct, 100] | min }}, 100"
+                                    stroke-linecap="round"/>
+                            </svg>
+                            <span class="absolute inset-0 flex items-center justify-center text-[8px] font-mono text-charcoal dark:text-white font-medium">{{ "{:.0f}".format([paid_pct, 100] | min) }}%</span>
+                        </div>
+                        <span class="text-xs font-bold text-charcoal dark:text-white">{{ current_year }}</span>
+                    </div>
+                </div>
+
+                <!-- Ledger Body -->
+                <div class="flex-1 p-4 flex flex-col">
+                    <!-- Calculation Flow -->
+                    <div class="space-y-0 flex-1">
+                        <!-- Taxable Income - Base -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-slate/20 dark:bg-neutral-600"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.taxable_income") if _ else "Zu verst. Einkommen" }}</span>
+                                <span class="font-mono text-sm text-charcoal dark:text-white tabular-nums">€{{ "{:,.0f}".format(tax_estimate.taxable_income).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Arrow down indicator -->
+                        <div class="flex items-center gap-3 py-0.5">
+                            <div class="w-1 flex justify-center">
+                                <svg class="w-3 h-3 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 border-t border-dashed border-cream-dark dark:border-neutral-600"></div>
+                        </div>
+
+                        <!-- Income Tax - Debit -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-terracotta/40"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.income_tax") if _ else "Einkommensteuer" }}</span>
+                                <span class="font-mono text-sm text-terracotta tabular-nums">€{{ "{:,.0f}".format(tax_estimate.einkommensteuer).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+
+                        {% if tax_estimate.solidaritaetszuschlag > 0 %}
+                        <!-- Solidaritätszuschlag -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-6 rounded-full bg-terracotta/20"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.soli") if _ else "Soli" }}</span>
+                                <span class="font-mono text-xs text-terracotta/70 tabular-nums">€{{ "{:,.0f}".format(tax_estimate.solidaritaetszuschlag).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Prepayments - Credit -->
+                        <div class="flex items-center gap-3 py-2">
+                            <div class="w-1 h-8 rounded-full bg-sage/40"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <span class="text-[10px] text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("tax.prepayments") if _ else "Vorauszahlungen" }}</span>
+                                <span class="font-mono text-sm text-sage tabular-nums">−€{{ "{:,.0f}".format(paid_quarterly).replace(",", ".") }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Line - The Finale -->
+                    <div class="mt-auto pt-3 border-t-2 border-charcoal/10 dark:border-neutral-600">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                {% if remaining_income_tax > 0 %}
+                                <div class="w-2 h-2 rounded-full bg-amber animate-pulse"></div>
+                                {% else %}
+                                <div class="w-2 h-2 rounded-full bg-sage"></div>
+                                {% endif %}
+                                <span class="text-xs font-semibold text-charcoal dark:text-white">{{ _("tax.remaining_due") if _ else "Saldo" }}</span>
+                            </div>
+                            {% if remaining_income_tax > 0 %}
+                            <span class="font-mono text-xl font-bold text-amber tabular-nums">€{{ "{:,.0f}".format(remaining_income_tax).replace(",", ".") }}</span>
+                            {% else %}
+                            <span class="font-mono text-xl font-bold text-sage tabular-nums">€0</span>
+                            {% endif %}
+                        </div>
+                        {% if remaining_income_tax > 0 %}
+                        <p class="text-[9px] text-slate dark:text-gray-500 mt-1 ml-4">{{ _("tax.due_with_return") if _ else "Fällig mit Steuererklärung" }}</p>
+                        {% else %}
+                        <p class="text-[9px] text-sage mt-1 ml-4 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {{ _("tax.prepayments_sufficient") if _ else "Vorauszahlungen decken Steuer" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+</style>
+{% endblock %}

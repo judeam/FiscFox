@@ -1,0 +1,37 @@
+<tr id="quarterly-row-{{ payment.quarter }}" class="hover:bg-cream-dark/30 dark:hover:bg-neutral-700/30 transition-colors">
+    <td class="px-4 py-3 font-medium text-charcoal dark:text-white">Q{{ payment.quarter }}</td>
+    <td class="px-4 py-3 font-mono text-sm text-charcoal dark:text-white">{{ payment.due_date.strftime('%d.%m.%Y') }}</td>
+    <td class="px-4 py-3 font-mono text-sm text-right text-charcoal dark:text-white">€{{ "{:,.2f}".format(payment.amount).replace(",", " ").replace(".", ",") }}</td>
+    <td class="px-4 py-3 text-center">
+        <button
+            hx-post="/api/quarterly/{{ current_year }}/{{ payment.quarter }}/toggle"
+            hx-target="#quarterly-row-{{ payment.quarter }}"
+            hx-swap="outerHTML"
+            class="cursor-pointer transition-all hover:scale-105 active:scale-95"
+            title="{{ _('quarterly.click_to_toggle') if _ else 'Klicken zum Umschalten' }}"
+        >
+            {% if payment.paid %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-sage/10 text-sage hover:bg-sage/20 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                {{ _("quarterly.paid") if _ else "Bezahlt" }}
+            </span>
+            {% elif payment.days_until is not none and payment.days_until < 0 %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-terracotta/10 text-terracotta hover:bg-terracotta/20 transition-colors">
+                <span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>
+                {{ _("quarterly.overdue") if _ else "Überfällig" }}
+            </span>
+            {% elif payment.days_until is not none and payment.days_until <= 30 %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber/10 text-amber-dark dark:text-amber hover:bg-amber/20 transition-colors">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
+                {{ _("quarterly.due_soon") if _ else "Bald fällig" }}
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate/10 text-slate hover:bg-slate/20 transition-colors">
+                {{ _("quarterly.pending") if _ else "Ausstehend" }}
+            </span>
+            {% endif %}
+        </button>
+    </td>
+</tr>

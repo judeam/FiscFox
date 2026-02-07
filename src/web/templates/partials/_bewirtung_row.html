@@ -1,0 +1,43 @@
+<tr id="bewirtung-{{ meal.id }}" class="border-b border-cream-dark dark:border-neutral-700 hover:bg-cream/50 dark:hover:bg-neutral-700/50 transition-colors">
+    <td class="py-3 px-4 font-mono text-sm text-charcoal dark:text-white">
+        {{ meal.date.strftime('%d.%m.%Y') }}
+    </td>
+    <td class="py-3 px-4">
+        <div class="font-medium text-charcoal dark:text-white">{{ meal.restaurant_name }}</div>
+        <div class="text-xs text-slate dark:text-gray-400 truncate max-w-xs">{{ meal.business_purpose[:50] }}{% if meal.business_purpose|length > 50 %}...{% endif %}</div>
+    </td>
+    <td class="py-3 px-4 text-charcoal dark:text-white text-sm">
+        {{ meal.attendees[:30] }}{% if meal.attendees|length > 30 %}...{% endif %}
+        <span class="text-slate dark:text-gray-400">({{ meal.attendee_count }})</span>
+    </td>
+    <td class="py-3 px-4 text-center">
+        {% if meal.is_internal %}
+        <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-sage/10 text-sage">
+            {{ _("bewirtung.internal") if _ else "Intern" }}
+        </span>
+        {% else %}
+        <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-forest/10 text-forest dark:text-sage">
+            {{ _("bewirtung.external") if _ else "Extern" }}
+        </span>
+        {% endif %}
+    </td>
+    <td class="py-3 px-4 font-mono text-right text-charcoal dark:text-white">
+        €{{ "{:,.2f}".format(meal.total_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 font-mono text-right text-forest dark:text-sage">
+        €{{ "{:,.2f}".format(meal.deductible_amount).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+    </td>
+    <td class="py-3 px-4 text-right">
+        <button
+            hx-delete="/bewirtung/{{ meal.id }}"
+            hx-target="#bewirtung-{{ meal.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="{{ _('bewirtung.confirm_delete') if _ else 'Bewirtung wirklich löschen?' }}"
+            class="text-slate hover:text-terracotta transition-colors"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </button>
+    </td>
+</tr>

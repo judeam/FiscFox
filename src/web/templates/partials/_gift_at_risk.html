@@ -1,0 +1,29 @@
+{% if at_risk %}
+<div class="bg-amber/10 dark:bg-amber/5 rounded-xl p-4">
+    <h4 class="font-medium text-charcoal dark:text-white mb-3">
+        {{ _("gift.at_risk_title") if _ else "Empfänger nahe Geschenkegrenze" }}
+    </h4>
+    <div class="space-y-2">
+        {% for r in at_risk %}
+        <div class="flex justify-between items-center text-sm">
+            <span class="text-charcoal dark:text-white">{{ r.recipient_name }}</span>
+            <div class="flex items-center gap-2">
+                <div class="w-24 bg-cream-dark dark:bg-neutral-600 rounded-full h-2">
+                    <div
+                        class="h-2 rounded-full {% if r.is_over_limit %}bg-terracotta{% else %}bg-amber{% endif %}"
+                        style="width: {{ ((r.total_gifts_net / limit) * 100)|int }}%"
+                    ></div>
+                </div>
+                <span class="font-mono text-xs {% if r.is_over_limit %}text-terracotta{% else %}text-amber-dark dark:text-amber{% endif %}">
+                    €{{ "{:,.2f}".format(r.total_gifts_net).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="text-center py-4 text-slate dark:text-gray-400 text-sm">
+    {{ _("gift.no_at_risk") if _ else "Keine Empfänger nahe der Grenze" }}
+</div>
+{% endif %}

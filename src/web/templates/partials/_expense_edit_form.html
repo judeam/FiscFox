@@ -1,0 +1,118 @@
+<form
+    hx-put="/expenses/{{ expense.id }}"
+    hx-target="#expense-row-{{ expense.id }}"
+    hx-swap="outerHTML"
+    hx-on::after-request="document.getElementById('expense-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-forest dark:border-sage/50 p-6 space-y-4 mb-4 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("expense.edit") if _ else "Ausgabe bearbeiten" }}</h3>
+        <button
+            type="button"
+            onclick="document.getElementById('expense-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.date") if _ else "Datum" }}</label>
+            <input
+                type="date"
+                name="date"
+                required
+                value="{{ expense.date.isoformat() }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Vendor -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.vendor") if _ else "Lieferant/Dienstleister" }}</label>
+            <input
+                type="text"
+                name="vendor"
+                required
+                value="{{ expense.vendor }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Amount -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.gross_amount") if _ else "Bruttobetrag" }}</label>
+            <input
+                type="number"
+                name="amount_gross"
+                step="0.01"
+                min="0.01"
+                required
+                value="{{ expense.amount_gross }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- VAT Rate -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.vat_rate") if _ else "MwSt.-Satz" }}</label>
+            <select
+                name="vat_rate"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+                {% for rate, label in vat_rates %}
+                <option value="{{ rate }}" {% if expense.vat_rate.value == rate %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Category -->
+        <div class="space-y-1 col-span-2">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.category") if _ else "Kategorie" }}</label>
+            <select
+                name="category"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+                {% for cat in categories %}
+                <option value="{{ cat.value }}" {% if expense.category.value == cat.value %}selected{% endif %}>{{ _("category." + cat.value) if _ else cat.value|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Description -->
+        <div class="space-y-1 col-span-2">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.description") if _ else "Beschreibung" }}</label>
+            <input
+                type="text"
+                name="description"
+                required
+                minlength="3"
+                value="{{ expense.description }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent transition-all"
+            >
+        </div>
+    </div>
+
+    <div class="flex justify-end gap-3 pt-2">
+        <button
+            type="button"
+            onclick="document.getElementById('expense-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+        >
+            {{ _("action.cancel") if _ else "Abbrechen" }}
+        </button>
+        <button
+            type="submit"
+            class="px-6 py-2 bg-forest hover:bg-forest-light text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ _("action.update") if _ else "Aktualisieren" }}
+        </button>
+    </div>
+</form>

@@ -1,0 +1,177 @@
+{# Dark Invoice Template - OCR-Optimized for Finanzamt #}
+<div class="invoice-template-dark" style="
+    width: 210mm;
+    min-height: 297mm;
+    background: #111113;
+    color: #fafafa;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+    padding: 20mm;
+">
+    <style>
+        /* Fonts loaded from /static/css/fonts.css (Inter, JetBrains Mono) */
+
+        .invoice-template-dark {
+            --bg: #111113;
+            --bg-card: #1a1a1d;
+            --text: #fafafa;
+            --text-secondary: #a1a1a6;
+            --accent: #d4a853;
+            --border: #2a2a2d;
+        }
+
+        .invoice-template-dark * {
+            box-sizing: border-box;
+        }
+
+        /* Print optimization - ensure colors print */
+        @media print {
+            .invoice-template-dark {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+
+    <!-- Header: Invoice Title + Number -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12mm; padding-bottom: 8mm; border-bottom: 2px solid #d4a853;">
+        <div>
+            <h1 style="font-size: 28pt; font-weight: 700; color: #fafafa; margin: 0; letter-spacing: -0.02em;">INVOICE</h1>
+        </div>
+        <div style="text-align: right;">
+            <p style="font-size: 9pt; color: #a1a1a6; margin: 0 0 2mm 0; text-transform: uppercase; letter-spacing: 0.1em;">Invoice No.</p>
+            <p style="font-size: 16pt; font-weight: 700; color: #d4a853; margin: 0; font-family: 'JetBrains Mono', monospace;">{{ invoice.invoice_number }}</p>
+        </div>
+    </div>
+
+    <!-- Two Column: From / To -->
+    <div style="display: flex; gap: 10mm; margin-bottom: 10mm;">
+        <!-- From -->
+        <div style="flex: 1; padding: 5mm; background: #1a1a1d; border: 1px solid #2a2a2d;">
+            <p style="font-size: 8pt; color: #d4a853; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 3mm 0; font-weight: 600;">From</p>
+            <p style="font-weight: 600; margin: 0 0 1mm 0; font-size: 11pt;">{{ sender.name }}</p>
+            <p style="color: #a1a1a6; margin: 0; font-size: 9pt;">{{ sender.street }}</p>
+            {% if sender.details %}<p style="color: #a1a1a6; margin: 0; font-size: 9pt;">{{ sender.details }}</p>{% endif %}
+            <p style="color: #a1a1a6; margin: 0; font-size: 9pt;">{{ sender.zip }} {{ sender.city }}</p>
+            <p style="color: #a1a1a6; margin: 0; font-size: 9pt;">{{ sender.country }}</p>
+            <p style="color: #a1a1a6; margin: 3mm 0 0 0; font-size: 9pt; font-family: 'JetBrains Mono', monospace;">VAT: {{ sender.vat_id }}</p>
+        </div>
+
+        <!-- To -->
+        <div style="flex: 1; padding: 5mm; background: #1a1a1d; border: 1px solid #2a2a2d;">
+            <p style="font-size: 8pt; color: #d4a853; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 3mm 0; font-weight: 600;">Bill To</p>
+            <p style="font-weight: 600; margin: 0 0 1mm 0; font-size: 11pt;">{{ invoice.client }}</p>
+            {% for line in client_address %}
+            <p style="color: #a1a1a6; margin: 0; font-size: 9pt;">{{ line }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Invoice Meta: Date, Service Date, Due Date -->
+    <div style="display: flex; gap: 5mm; margin-bottom: 10mm;">
+        <div style="flex: 1; padding: 4mm; background: #1a1a1d; border: 1px solid #2a2a2d; text-align: center;">
+            <p style="font-size: 8pt; color: #a1a1a6; text-transform: uppercase; margin: 0 0 1mm 0;">Invoice Date</p>
+            <p style="font-size: 10pt; font-weight: 600; margin: 0; font-family: 'JetBrains Mono', monospace;">{{ invoice.date.strftime('%Y-%m-%d') }}</p>
+        </div>
+        <div style="flex: 1; padding: 4mm; background: #1a1a1d; border: 1px solid #2a2a2d; text-align: center;">
+            <p style="font-size: 8pt; color: #a1a1a6; text-transform: uppercase; margin: 0 0 1mm 0;">Service Date</p>
+            <p style="font-size: 10pt; font-weight: 600; margin: 0; font-family: 'JetBrains Mono', monospace;">{{ invoice.date.strftime('%Y-%m-%d') }}</p>
+        </div>
+        <div style="flex: 1; padding: 4mm; background: #1a1a1d; border: 1px solid #2a2a2d; text-align: center;">
+            <p style="font-size: 8pt; color: #a1a1a6; text-transform: uppercase; margin: 0 0 1mm 0;">Due Date</p>
+            <p style="font-size: 10pt; font-weight: 600; margin: 0; font-family: 'JetBrains Mono', monospace; color: #d4a853;">{{ invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else 'Net 14' }}</p>
+        </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 8mm; font-size: 9pt;">
+        <thead>
+            <tr style="background: #1a1a1d;">
+                <th style="padding: 3mm; text-align: left; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt;">Description</th>
+                <th style="padding: 3mm; text-align: center; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt; width: 12%;">Qty</th>
+                <th style="padding: 3mm; text-align: center; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt; width: 12%;">Unit</th>
+                <th style="padding: 3mm; text-align: right; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt; width: 15%;">Unit Price</th>
+                <th style="padding: 3mm; text-align: right; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt; width: 10%;">VAT</th>
+                <th style="padding: 3mm; text-align: right; border: 1px solid #2a2a2d; font-weight: 600; color: #a1a1a6; text-transform: uppercase; font-size: 8pt; width: 15%;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; vertical-align: top;">
+                    <span style="font-weight: 500;">{{ item.description }}</span>
+                    {% if item.service_date %}
+                    <br><span style="font-size: 8pt; color: #a1a1a6;">{{ item.service_date.strftime('%Y-%m-%d') }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; text-align: center; font-family: 'JetBrains Mono', monospace;">{{ item.quantity }}</td>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; text-align: center; color: #a1a1a6;">{{ item.unit }}</td>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; text-align: right; font-family: 'JetBrains Mono', monospace;">{{ "%.2f"|format(item.unit_price) }} EUR</td>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; text-align: right; font-family: 'JetBrains Mono', monospace;">{{ (invoice.vat_rate.value | float * 100) | int }}%</td>
+                <td style="padding: 3mm; border: 1px solid #2a2a2d; text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 600;">{{ "%.2f"|format(item.total) }} EUR</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 8mm;">
+        <table style="width: 70mm; border-collapse: collapse; font-size: 10pt;">
+            <tr>
+                <td style="padding: 2mm 3mm; color: #a1a1a6;">Subtotal (Net)</td>
+                <td style="padding: 2mm 3mm; text-align: right; font-family: 'JetBrains Mono', monospace;">{{ "%.2f"|format(invoice.amount_net) }} EUR</td>
+            </tr>
+            {% if invoice.vat_rate.value != '0.00' %}
+            <tr>
+                <td style="padding: 2mm 3mm; color: #a1a1a6;">VAT {{ (invoice.vat_rate.value | float * 100) | int }}%</td>
+                <td style="padding: 2mm 3mm; text-align: right; font-family: 'JetBrains Mono', monospace;">{{ "%.2f"|format(invoice.vat_amount) }} EUR</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td style="padding: 2mm 3mm; color: #a1a1a6;">VAT 0% (Reverse Charge)</td>
+                <td style="padding: 2mm 3mm; text-align: right; font-family: 'JetBrains Mono', monospace;">0.00 EUR</td>
+            </tr>
+            {% endif %}
+            <tr style="border-top: 2px solid #d4a853;">
+                <td style="padding: 3mm; font-weight: 700; font-size: 11pt;">Total Due</td>
+                <td style="padding: 3mm; text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12pt; color: #d4a853;">{{ "%.2f"|format(invoice.amount) }} EUR</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Reverse Charge Note -->
+    {% if invoice.vat_rate.value == '0.00' %}
+    <div style="padding: 4mm; background: #1a1a1d; border-left: 3px solid #d4a853; margin-bottom: 8mm; font-size: 9pt;">
+        <p style="font-weight: 600; color: #d4a853; margin: 0 0 2mm 0;">Reverse Charge (Section 13b UStG)</p>
+        <p style="color: #a1a1a6; margin: 0; line-height: 1.4;">
+            VAT liability transfers to the recipient. Services not taxable in Germany.<br>
+            The recipient is liable for VAT in their jurisdiction.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Payment Details -->
+    <div style="margin-bottom: 8mm;">
+        <p style="font-size: 9pt; color: #d4a853; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 3mm 0; font-weight: 600;">Payment Details</p>
+        <table style="width: 100%; font-size: 9pt; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 2mm 0; color: #a1a1a6; width: 25%;">Bank</td>
+                <td style="padding: 2mm 0;">{{ sender.bank }}</td>
+                <td style="padding: 2mm 0; color: #a1a1a6; width: 25%;">Account Holder</td>
+                <td style="padding: 2mm 0;">{{ sender.name }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 2mm 0; color: #a1a1a6;">IBAN</td>
+                <td style="padding: 2mm 0; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;">{{ sender.iban }}</td>
+                <td style="padding: 2mm 0; color: #a1a1a6;">BIC/SWIFT</td>
+                <td style="padding: 2mm 0; font-family: 'JetBrains Mono', monospace;">{{ sender.swift }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: auto; padding-top: 6mm; border-top: 1px solid #2a2a2d; font-size: 8pt; color: #a1a1a6;">
+        <p style="margin: 0;">{{ sender.email }} | {{ sender.phone }} | {{ sender.city }}, {{ sender.country }}</p>
+    </div>
+</div>

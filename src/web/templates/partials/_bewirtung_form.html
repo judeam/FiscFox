@@ -1,0 +1,158 @@
+<form
+    hx-post="/bewirtung/add"
+    hx-target="#bewirtung-list"
+    hx-swap="afterbegin"
+    hx-on::after-request="this.reset(); document.getElementById('bewirtung-form-container').innerHTML = '';"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-amber dark:border-amber/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("bewirtung.new_meal") if _ else "Neue Bewirtung erfassen" }}</h3>
+        <button
+            type="button"
+            onclick="document.getElementById('bewirtung-form-container').innerHTML = ''"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("form.date") if _ else "Datum" }}</label>
+            <input
+                type="date"
+                name="date"
+                required
+                value="{{ today }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Restaurant -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.restaurant") if _ else "Restaurant" }}</label>
+            <input
+                type="text"
+                name="restaurant_name"
+                required
+                placeholder="{{ _('bewirtung.restaurant_placeholder') if _ else 'z.B. Restaurant Zur Post' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Business Purpose -->
+        <div class="col-span-2 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.purpose") if _ else "Geschäftlicher Anlass" }} *</label>
+            <textarea
+                name="business_purpose"
+                required
+                minlength="10"
+                rows="2"
+                placeholder="{{ _('bewirtung.purpose_placeholder') if _ else 'z.B. Projektbesprechung mit Kunde XY bzgl. Webseitenredesign' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all resize-none"
+            ></textarea>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("bewirtung.purpose_hint") if _ else "Min. 10 Zeichen. Muss konkret und nachvollziehbar sein." }}</p>
+        </div>
+
+        <!-- Attendees -->
+        <div class="col-span-2 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.attendees") if _ else "Teilnehmer" }} *</label>
+            <input
+                type="text"
+                name="attendees"
+                required
+                placeholder="{{ _('bewirtung.attendees_placeholder') if _ else 'z.B. Max Mustermann, Erika Muster, Sie selbst' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Attendee Count -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.count") if _ else "Anzahl Personen" }}</label>
+            <input
+                type="number"
+                name="attendee_count"
+                min="1"
+                value="2"
+                required
+                hx-post="/bewirtung/preview"
+                hx-trigger="change delay:300ms"
+                hx-target="#deduction-preview"
+                hx-include="[name='total_amount'], [name='is_internal']"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Total Amount -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.amount") if _ else "Gesamtbetrag (€)" }}</label>
+            <input
+                type="number"
+                name="total_amount"
+                step="0.01"
+                min="0.01"
+                required
+                placeholder="0,00"
+                hx-post="/bewirtung/preview"
+                hx-trigger="change delay:300ms"
+                hx-target="#deduction-preview"
+                hx-include="[name='attendee_count'], [name='is_internal']"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Tip -->
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("bewirtung.tip") if _ else "Trinkgeld (€)" }}</label>
+            <input
+                type="number"
+                name="tip_amount"
+                step="0.01"
+                min="0"
+                value="0"
+                placeholder="0,00"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <!-- Internal Event Toggle -->
+        <div class="flex items-center">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    name="is_internal"
+                    class="w-4 h-4 rounded text-amber focus:ring-amber"
+                    hx-post="/bewirtung/preview"
+                    hx-trigger="change"
+                    hx-target="#deduction-preview"
+                    hx-include="[name='total_amount'], [name='attendee_count']"
+                >
+                <span class="text-sm text-charcoal dark:text-white">{{ _("bewirtung.internal") if _ else "Betriebsveranstaltung" }}</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Deduction Preview -->
+    <div id="deduction-preview" class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-xs text-slate dark:text-gray-400">{{ _("bewirtung.deductible") if _ else "Abzugsfähig" }}</p>
+                <p class="font-mono text-lg font-semibold text-forest dark:text-sage">--</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate dark:text-gray-400">{{ _("bewirtung.rate") if _ else "Rate" }}</p>
+                <p class="font-mono text-sm text-charcoal dark:text-white">{{ (deduction_rate * 100)|int }}% {{ _("bewirtung.external") if _ else "extern" }} / max €{{ cap_per_person }}/Person {{ _("bewirtung.internal") if _ else "intern" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <button
+        type="submit"
+        class="w-full py-3 bg-amber hover:bg-amber-dark text-forest font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+    >
+        {{ _("bewirtung.save") if _ else "Bewirtung speichern" }}
+    </button>
+</form>

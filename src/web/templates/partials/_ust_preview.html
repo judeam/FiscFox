@@ -1,0 +1,88 @@
+{# USt-Voranmeldung (Monthly VAT Return) Preview #}
+<div class="space-y-5">
+    <h3 class="font-display text-xl font-semibold text-charcoal dark:text-white">
+        {{ _("report.ust_voranmeldung") if _ else "USt-Voranmeldung" }} - {{ data.period }}
+    </h3>
+
+    <div class="grid grid-cols-3 gap-4">
+        {# VAT Collected (19%) #}
+        <div class="p-4 bg-gradient-to-br from-sage/10 to-sage/5 dark:from-sage/20 dark:to-sage/10 rounded-xl border border-sage/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("tax.vat") if _ else "Umsatzsteuer" }} (19%)</p>
+            <p class="font-mono text-2xl font-bold text-sage">{{ "{:,.2f}".format(data.revenue_standard_vat).replace(",", " ").replace(".", ",") }} €</p>
+        </div>
+
+        {# Input VAT (Vorsteuer) #}
+        <div class="p-4 bg-gradient-to-br from-terracotta/10 to-terracotta/5 dark:from-terracotta/20 dark:to-terracotta/10 rounded-xl border border-terracotta/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("tax.vorsteuer") if _ else "Vorsteuer" }}</p>
+            <p class="font-mono text-2xl font-bold text-terracotta">{{ "{:,.2f}".format(data.total_vorsteuer).replace(",", " ").replace(".", ",") }} €</p>
+        </div>
+
+        {# Net Liability (Zahllast) #}
+        <div class="p-4 bg-gradient-to-br from-forest/10 to-forest/5 dark:from-amber/20 dark:to-amber/10 rounded-xl border border-forest/20 dark:border-amber/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("tax.zahllast") if _ else "Zahllast" }}</p>
+            <p class="font-mono text-2xl font-bold {% if data.zahllast > 0 %}text-forest dark:text-amber{% else %}text-sage{% endif %}">
+                {{ "{:,.2f}".format(data.zahllast).replace(",", " ").replace(".", ",") }} €
+            </p>
+        </div>
+    </div>
+
+    {# Detailed Breakdown #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-4">
+        <h4 class="text-xs font-semibold text-charcoal dark:text-white uppercase tracking-wider mb-3">
+            {{ _("report.breakdown") if _ else "Aufschlüsselung" }}
+        </h4>
+        <div class="space-y-2 text-sm">
+            {# Standard Rate (19%) #}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.ust_standard_19") if _ else "Lieferungen und Leistungen (19%)" }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.revenue_standard_vat).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+
+            {# Reduced Rate (7%) if any #}
+            {% if data.revenue_reduced_vat > 0 %}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.ust_reduced_7") if _ else "Lieferungen ermäßigt (7%)" }}</span>
+                <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.revenue_reduced_vat).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+            {% endif %}
+
+            {# Reverse Charge (0%) if any #}
+            {% if data.reverse_charge_net > 0 %}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.reverse_charge") if _ else "Innergemeinschaftliche Lieferungen" }}</span>
+                <span class="font-mono font-medium text-slate dark:text-gray-500">0,00 €</span>
+            </div>
+            {% endif %}
+
+            {# Deductible Vorsteuer #}
+            <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                <span class="text-slate dark:text-gray-400">{{ _("report.deductible_vorsteuer") if _ else "Abziehbare Vorsteuerbeträge" }}</span>
+                <span class="font-mono font-medium text-terracotta">-{{ "{:,.2f}".format(data.total_vorsteuer).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+
+            {# Final Liability #}
+            <div class="flex justify-between py-2 font-semibold">
+                <span class="text-charcoal dark:text-white">{{ _("report.remaining_ust") if _ else "Verbleibende USt-Vorauszahlung" }}</span>
+                <span class="font-mono text-forest dark:text-amber">{{ "{:,.2f}".format(data.zahllast).replace(",", " ").replace(".", ",") }} €</span>
+            </div>
+        </div>
+    </div>
+
+    {# Nullmeldung Notice #}
+    {% if data.is_nullmeldung %}
+    <div class="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ _("report.nullmeldung_note") if _ else "Nullmeldung: Nur steuerfreie Umsätze" }}</span>
+    </div>
+    {% endif %}
+
+    {# Filing Deadline Note #}
+    <div class="flex items-center gap-2 text-xs text-slate dark:text-gray-500">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ _("report.deadline_note") if _ else "Abgabefrist: 10. des Folgemonats (mit Dauerfristverlängerung)" }}</span>
+    </div>
+</div>

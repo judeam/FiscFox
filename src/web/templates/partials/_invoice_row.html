@@ -1,0 +1,160 @@
+<tr
+    id="invoice-{{ invoice.id }}"
+    class="hover:bg-cream/30 dark:hover:bg-neutral-700/20 transition-colors group"
+    hx-target="this"
+    hx-swap="outerHTML"
+>
+    <td class="px-4 py-3">
+        <div class="flex items-center gap-1.5">
+            <span class="font-mono text-xs font-semibold text-forest dark:text-sage">{{ invoice.invoice_number }}</span>
+            {% if invoice.pdf_path %}
+            <span class="text-slate/40 dark:text-gray-600" title="{{ _('invoice.finalized') if _ else 'Finalisiert (PDF)' }}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </span>
+            {% endif %}
+        </div>
+    </td>
+    <td class="px-4 py-3">
+        <p class="text-sm font-medium text-charcoal dark:text-white truncate max-w-[200px]">{{ invoice.client }}</p>
+        {% if invoice.description %}
+        <p class="text-[10px] text-slate dark:text-gray-500 truncate max-w-[200px]">{{ invoice.description[:40] }}{% if invoice.description|length > 40 %}...{% endif %}</p>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3">
+        <p class="text-xs font-mono text-charcoal dark:text-white">{{ invoice.date.strftime('%d.%m.%Y') }}</p>
+        {% if invoice.status.value == 'overdue' and invoice.due_date %}
+        <p class="text-[10px] text-terracotta font-medium">{{ _("invoice.due") if _ else "Fällig" }}: {{ invoice.due_date.strftime('%d.%m') }}</p>
+        {% elif invoice.status.value == 'pending' and invoice.due_date %}
+        <p class="text-[10px] text-slate dark:text-gray-500">{{ _("table.due_date") if _ else "Fällig" }}: {{ invoice.due_date.strftime('%d.%m') }}</p>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-right">
+        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+            €{{ "{:,.2f}".format(invoice.amount).replace(",", " ").replace(".", ",") }}
+        </p>
+        {% if invoice.vat_amount is defined and invoice.vat_amount > 0 %}
+        <p class="text-[10px] font-mono text-slate dark:text-gray-500">
+            +{{ "{:,.0f}".format(invoice.vat_amount).replace(",", " ") }} USt
+        </p>
+        {% elif invoice.vat_rate is defined %}
+        <p class="text-[10px] font-mono text-slate dark:text-gray-500">
+            {{ _("vat.incl") if _ else "inkl." }} {{ (invoice.vat_rate.value | float * 100) | int }}% {{ _("tax.vat") if _ else "USt." }}
+        </p>
+        {% else %}
+        <p class="text-[10px] font-mono text-slate/50 dark:text-gray-600">RC</p>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-center">
+        {% if invoice.status.value == 'paid' %}
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-sage/15 text-sage">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ _("status.paid") if _ else "Bezahlt" }}
+        </span>
+        {% elif invoice.status.value == 'overdue' %}
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-terracotta/15 text-terracotta">
+            <span class="w-1.5 h-1.5 rounded-full bg-terracotta animate-pulse"></span>
+            {{ _("status.overdue") if _ else "Überfällig" }}
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-amber/15 text-amber-dark dark:text-amber">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/>
+            </svg>
+            {{ _("status.pending") if _ else "Offen" }}
+        </span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <!-- Mark as Paid -->
+            {% if invoice.status.value != 'paid' %}
+            <button
+                hx-post="/invoices/{{ invoice.id }}/mark-paid"
+                hx-target="#invoice-{{ invoice.id }}"
+                hx-swap="outerHTML"
+                class="p-1.5 text-slate hover:text-sage hover:bg-sage/10 rounded-md transition-colors"
+                title="{{ _('invoice.mark_paid') if _ else 'Als bezahlt markieren' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </button>
+            {% endif %}
+
+            <!-- View Details -->
+            <button
+                hx-get="/invoices/{{ invoice.id }}"
+                hx-target="body"
+                hx-swap="beforeend"
+                class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                title="{{ _('invoice.details') if _ else 'Details anzeigen' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+            </button>
+
+            <!-- Edit (only shown if no PDF and not paid) -->
+            {% if not invoice.pdf_path and invoice.status.value != 'paid' %}
+            <button
+                hx-get="/invoices/{{ invoice.id }}/edit"
+                hx-target="#invoice-form-container"
+                hx-swap="innerHTML"
+                class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                title="{{ _('common.edit') if _ else 'Bearbeiten' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+            {% endif %}
+
+            <!-- Print/PDF -->
+            {% if invoice.pdf_path %}
+            <!-- Has existing PDF - direct download/print -->
+            <a
+                href="/invoices/{{ invoice.id }}/pdf/download"
+                target="_blank"
+                class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                title="{{ _('invoice.print_pdf') if _ else 'PDF drucken' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+            </a>
+            {% else %}
+            <!-- No PDF - show preview modal to generate -->
+            <button
+                hx-get="/invoices/preview-modal/{{ invoice.id }}"
+                hx-target="body"
+                hx-swap="beforeend"
+                class="p-1.5 text-slate hover:text-forest dark:hover:text-amber hover:bg-forest/10 dark:hover:bg-amber/10 rounded-md transition-colors"
+                title="{{ _('invoice.preview_print') if _ else 'PDF erstellen' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </button>
+            {% endif %}
+
+            <!-- Delete -->
+            <button
+                hx-delete="/invoices/{{ invoice.id }}"
+                hx-confirm="{{ _('invoice.delete_confirm') if _ else 'Rechnung wirklich löschen?' }}"
+                hx-target="#invoice-{{ invoice.id }}"
+                hx-swap="outerHTML"
+                class="p-1.5 text-slate hover:text-terracotta hover:bg-terracotta/10 rounded-md transition-colors"
+                title="{{ _('invoice.delete') if _ else 'Löschen' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    </td>
+</tr>

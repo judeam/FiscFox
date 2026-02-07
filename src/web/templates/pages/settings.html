@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("settings.title") }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Settings navigation active state */
+    .settings-nav-item {
+        transition: all 0.2s ease;
+    }
+    .settings-nav-item.active {
+        background: linear-gradient(90deg, rgba(76, 114, 91, 0.1), transparent);
+        border-left-color: #4c725b;
+    }
+    .dark .settings-nav-item.active {
+        background: linear-gradient(90deg, rgba(212, 168, 83, 0.15), transparent);
+        border-left-color: #d4a853;
+    }
+
+    /* Section visibility */
+    .settings-panel {
+        display: none;
+    }
+    .settings-panel.active {
+        display: block;
+        animation: panelFadeIn 0.25s ease-out;
+    }
+
+    @keyframes panelFadeIn {
+        from { opacity: 0; transform: translateX(8px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Input focus glow */
+    .settings-input:focus {
+        box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15);
+    }
+
+    /* Custom scrollbar for settings content */
+    .settings-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+    .settings-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .settings-scroll::-webkit-scrollbar-thumb {
+        background-color: rgba(100, 116, 139, 0.3);
+        border-radius: 4px;
+    }
+    .dark .settings-scroll::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.3);
+    }
+
+    /* Toast animation */
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out forwards;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto h-[calc(100vh-120px)] flex flex-col page-enter">
+
+    <!-- Compact Header Row -->
+    <header class="flex items-center justify-between mb-4 flex-shrink-0 hero-enter">
+        <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+            {{ _("settings.title") }}
+        </h1>
+        <button
+            type="submit"
+            form="settings-form"
+            class="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber-dark text-forest font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ _("settings.save") }}
+        </button>
+    </header>
+
+    <!-- Main Content: Sidebar + Form -->
+    <div class="flex-1 min-h-0 grid grid-cols-12 gap-4">
+
+        <!-- Sidebar Navigation -->
+        <nav class="col-span-2 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-2 overflow-y-auto settings-scroll">
+            <div class="space-y-1">
+                <button type="button" onclick="showPanel('business')" class="settings-nav-item active w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="business">
+                    <div class="w-6 h-6 bg-forest/10 dark:bg-amber/20 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.business_identity") if _ else "Firma" }}</span>
+                </button>
+
+                <button type="button" onclick="showPanel('address')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="address">
+                    <div class="w-6 h-6 bg-forest/10 dark:bg-amber/20 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.business_address") if _ else "Adresse" }}</span>
+                </button>
+
+                <button type="button" onclick="showPanel('contact')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="contact">
+                    <div class="w-6 h-6 bg-forest/10 dark:bg-amber/20 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.contact") if _ else "Kontakt" }}</span>
+                </button>
+
+                <div class="my-2 border-t border-cream-dark dark:border-neutral-700"></div>
+
+                <button type="button" onclick="showPanel('tax')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="tax">
+                    <div class="w-6 h-6 bg-terracotta/10 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-terracotta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.tax_info") if _ else "Steuer-IDs" }}</span>
+                </button>
+
+                <button type="button" onclick="showPanel('obligations')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="obligations">
+                    <div class="w-6 h-6 bg-forest/10 dark:bg-amber/20 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.tax_obligations") if _ else "Pflichten" }}</span>
+                </button>
+
+                <div class="my-2 border-t border-cream-dark dark:border-neutral-700"></div>
+
+                <button type="button" onclick="showPanel('bank')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="bank">
+                    <div class="w-6 h-6 bg-sage/10 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.bank_details") if _ else "Bank" }}</span>
+                </button>
+
+                <button type="button" onclick="showPanel('invoice')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="invoice">
+                    <div class="w-6 h-6 bg-amber/10 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-amber-dark dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.invoice_prefs") if _ else "Rechnung" }}</span>
+                </button>
+
+                <button type="button" onclick="showPanel('display')" class="settings-nav-item w-full flex items-center gap-2 px-3 py-2 text-left text-sm rounded-lg border-l-2 border-transparent hover:bg-cream/50 dark:hover:bg-neutral-700/50" data-panel="display">
+                    <div class="w-6 h-6 bg-forest/10 dark:bg-amber/20 rounded flex items-center justify-center flex-shrink-0">
+                        <svg class="w-3 h-3 text-forest dark:text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                    </div>
+                    <span class="text-charcoal dark:text-gray-200 truncate">{{ _("settings.display_prefs") if _ else "Anzeige" }}</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Form Panels -->
+        <div class="col-span-10 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 overflow-hidden">
+            <form id="settings-form" hx-post="/settings/update" hx-swap="none" class="h-full flex flex-col">
+
+                <!-- Panel: Business Identity -->
+                <div id="panel-business" class="settings-panel active flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.business_identity") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.business_identity_desc") }}</p>
+                    </div>
+                    <div class="max-w-xl">
+                        <label for="business_name" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">
+                            {{ _("settings.business_name") }}
+                        </label>
+                        <input
+                            type="text"
+                            id="business_name"
+                            name="business_name"
+                            value="{{ settings.business_name|default('') }}"
+                            placeholder="Max Mustermann Consulting"
+                            class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all"
+                        >
+                    </div>
+                </div>
+
+                <!-- Panel: Address -->
+                <div id="panel-address" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.business_address") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.business_address_desc") }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 max-w-2xl">
+                        <div class="col-span-2">
+                            <label for="street" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.street") }}</label>
+                            <input type="text" id="street" name="street" value="{{ settings.street|default('') }}" placeholder="Musterstraße 123"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                        <div class="col-span-2">
+                            <label for="address_details" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">
+                                {{ _("settings.address_details") }} <span class="text-slate dark:text-gray-500 font-normal text-xs">({{ _("label.optional") }})</span>
+                            </label>
+                            <input type="text" id="address_details" name="address_details" value="{{ settings.address_details|default('') }}" placeholder="{% if lang == 'de' %}Gebäude, Etage{% else %}Building, Floor{% endif %}"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                        <div>
+                            <label for="zip_code" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.zip_code") }}</label>
+                            <input type="text" id="zip_code" name="zip_code" value="{{ settings.zip_code|default('') }}" placeholder="10115"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                        </div>
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.city") }}</label>
+                            <input type="text" id="city" name="city" value="{{ settings.city|default('') }}" placeholder="Berlin"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                        <div class="col-span-2">
+                            <label for="country" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.country") }}</label>
+                            <input type="text" id="country" name="country" value="{{ settings.country|default('Germany') }}" placeholder="Germany"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Contact -->
+                <div id="panel-contact" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.contact") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.contact_desc") }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 max-w-2xl">
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.phone") }}</label>
+                            <input type="tel" id="phone" name="phone" value="{{ settings.phone|default('') }}" placeholder="+49 30 12345678"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.email") }}</label>
+                            <input type="email" id="email" name="email" value="{{ settings.email|default('') }}" placeholder="kontakt@example.de"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                        <div class="col-span-2">
+                            <label for="website" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">
+                                {{ _("settings.website") }} <span class="text-slate dark:text-gray-500 font-normal text-xs">({{ _("label.optional") }})</span>
+                            </label>
+                            <input type="url" id="website" name="website" value="{{ settings.website|default('') }}" placeholder="https://example.de"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Tax Information -->
+                <div id="panel-tax" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.tax_info") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.tax_info_desc") }}</p>
+                        <span class="ml-auto px-2 py-0.5 bg-terracotta/10 text-terracotta text-[10px] font-medium rounded">{{ _("settings.required") }}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 max-w-2xl">
+                        <div>
+                            <label for="vat_id" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">
+                                {{ _("settings.vat_id") }} <span class="text-terracotta">*</span>
+                            </label>
+                            <input type="text" id="vat_id" name="vat_id" value="{{ settings.vat_id|default('') }}" placeholder="DE123456789"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono uppercase">
+                            <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.vat_id_desc") }}</p>
+                        </div>
+                        <div>
+                            <label for="tax_number" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.tax_number") }}</label>
+                            <input type="text" id="tax_number" name="tax_number" value="{{ settings.tax_number|default('') }}" placeholder="12/345/67890"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                            <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.tax_number_desc") }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Tax Obligations -->
+                <div id="panel-obligations" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.tax_obligations") if _ else "Steuerpflichten" }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.tax_obligations_desc") if _ else "Steuermeldungen konfigurieren" }}</p>
+                    </div>
+                    <div class="max-w-2xl space-y-4">
+                        <!-- Checkboxes -->
+                        <div class="flex items-start gap-3 p-3 bg-cream/30 dark:bg-neutral-900/50 rounded-lg">
+                            <input type="checkbox" id="is_freiberufler" name="is_freiberufler" {% if settings.is_freiberufler %}checked{% endif %}
+                                class="mt-0.5 w-4 h-4 rounded border-cream-dark dark:border-neutral-600 bg-cream/50 dark:bg-neutral-900 text-forest dark:text-amber focus:ring-amber focus:ring-offset-0">
+                            <div>
+                                <label for="is_freiberufler" class="text-sm font-medium text-charcoal dark:text-gray-200 cursor-pointer">{{ _("settings.is_freiberufler") if _ else "Freiberufler (§ 18 EStG)" }}</label>
+                                <p class="text-[10px] text-slate dark:text-gray-500">{{ _("settings.is_freiberufler_desc") if _ else "Befreit von Gewerbesteuer" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-cream/30 dark:bg-neutral-900/50 rounded-lg">
+                            <input type="checkbox" id="has_eu_clients" name="has_eu_clients" {% if settings.has_eu_clients %}checked{% endif %}
+                                class="mt-0.5 w-4 h-4 rounded border-cream-dark dark:border-neutral-600 bg-cream/50 dark:bg-neutral-900 text-forest dark:text-amber focus:ring-amber focus:ring-offset-0">
+                            <div>
+                                <label for="has_eu_clients" class="text-sm font-medium text-charcoal dark:text-gray-200 cursor-pointer">{{ _("settings.has_eu_clients") if _ else "EU-Kunden (ZM)" }}</label>
+                                <p class="text-[10px] text-slate dark:text-gray-500">{{ _("settings.has_eu_clients_desc") if _ else "Zusammenfassende Meldung erforderlich" }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Activity Start Date -->
+                        <div class="pt-3 border-t border-cream-dark dark:border-neutral-700">
+                            <label for="activity_start_date" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.activity_start_date") if _ else "Beginn der Tätigkeit" }}</label>
+                            <input type="date" id="activity_start_date" name="activity_start_date"
+                                value="{{ settings.activity_start_date.isoformat() if settings.activity_start_date else '' }}"
+                                class="settings-input w-full max-w-xs px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                            <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.activity_start_date_hint") if _ else "Daten vor diesem Datum werden ignoriert" }}</p>
+                        </div>
+
+                        <!-- Selects -->
+                        <div class="grid grid-cols-2 gap-4 pt-3 border-t border-cream-dark dark:border-neutral-700">
+                            <div>
+                                <label for="ust_frequency" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.ust_frequency") if _ else "USt-Voranmeldung" }}</label>
+                                <select id="ust_frequency" name="ust_frequency"
+                                    class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                                    <option value="monthly" {% if settings.ust_frequency == 'monthly' %}selected{% endif %}>{{ _("settings.ust_monthly") if _ else "Monatlich" }}</option>
+                                    <option value="quarterly" {% if settings.ust_frequency == 'quarterly' %}selected{% endif %}>{{ _("settings.ust_quarterly") if _ else "Vierteljährlich" }}</option>
+                                    <option value="annual" {% if settings.ust_frequency == 'annual' %}selected{% endif %}>{{ _("settings.ust_annual") if _ else "Jährlich" }}</option>
+                                </select>
+                                <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.ust_frequency_desc") if _ else "Basiert auf Vorjahres-USt" }}</p>
+                            </div>
+                            <div>
+                                <label for="quarterly_est_amount" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.quarterly_est_amount") if _ else "ESt-Vorauszahlung/Q" }}</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate dark:text-gray-500 text-sm">€</span>
+                                    <input type="number" id="quarterly_est_amount" name="quarterly_est_amount" value="{{ settings.quarterly_est_amount|default(0) }}" min="0" step="0.01" placeholder="3500.00"
+                                        class="settings-input w-full pl-7 pr-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                                </div>
+                                <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.quarterly_est_desc") if _ else "Laut Vorauszahlungsbescheid" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Bank Details -->
+                <div id="panel-bank" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.bank_details") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.bank_details_desc") }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 max-w-2xl">
+                        <div class="col-span-2">
+                            <label for="bank_name" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.bank_name") }}</label>
+                            <input type="text" id="bank_name" name="bank_name" value="{{ settings.bank_name|default('') }}" placeholder="Commerzbank"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                        </div>
+                        <div>
+                            <label for="iban" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.iban") }}</label>
+                            <input type="text" id="iban" name="iban" value="{{ settings.iban|default('') }}" placeholder="DE89 3704 0044 0532 0130 00"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono tracking-wider">
+                        </div>
+                        <div>
+                            <label for="bic_swift" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.bic_swift") }}</label>
+                            <input type="text" id="bic_swift" name="bic_swift" value="{{ settings.bic_swift|default('') }}" placeholder="COBADEFFXXX"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono uppercase">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Invoice Preferences -->
+                <div id="panel-invoice" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.invoice_prefs") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.invoice_prefs_desc") }}</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 max-w-2xl">
+                        <div>
+                            <label for="default_payment_terms" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.payment_terms") }}</label>
+                            <div class="relative">
+                                <input type="number" id="default_payment_terms" name="default_payment_terms" value="{{ settings.default_payment_terms|default(14) }}" min="0" max="365" placeholder="14"
+                                    class="settings-input w-full px-3 py-2 pr-12 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate dark:text-gray-500 text-xs">{{ _("label.days") if _ else "Tage" }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="default_vat_rate" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.default_vat_rate") }}</label>
+                            <select id="default_vat_rate" name="default_vat_rate"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                                {% for value, label in vat_rates %}
+                                <option value="{{ value }}" {% if settings.default_vat_rate.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="invoice_prefix" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.invoice_prefix") }}</label>
+                            <input type="text" id="invoice_prefix" name="invoice_prefix" value="{{ settings.invoice_prefix|default('') }}" placeholder="INV-"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: Display Preferences -->
+                <div id="panel-display" class="settings-panel flex-1 overflow-y-auto settings-scroll p-5">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-cream-dark dark:border-neutral-700">
+                        <h2 class="font-display text-lg font-semibold text-charcoal dark:text-white">{{ _("settings.display_prefs") }}</h2>
+                        <p class="text-xs text-slate dark:text-gray-400">{{ _("settings.display_prefs_desc") }}</p>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 max-w-2xl">
+                        <div>
+                            <label for="language" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.language") }}</label>
+                            <select id="language" name="language"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                                {% for value, label in languages %}
+                                <option value="{{ value }}" {% if settings.language == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="preferred_currency" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.currency") }}</label>
+                            <input type="text" id="preferred_currency" name="preferred_currency" value="{{ settings.preferred_currency|default('EUR') }}" placeholder="EUR" maxlength="3"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white placeholder-slate/50 dark:placeholder-gray-500 focus:border-amber dark:focus:border-amber focus:ring-0 transition-all font-mono uppercase">
+                        </div>
+                        <div>
+                            <label for="date_format" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.date_format") }}</label>
+                            <select id="date_format" name="date_format"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                                {% for value, label in date_formats %}
+                                <option value="{{ value }}" {% if settings.date_format == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tax Year -->
+                    <div class="mt-4 pt-4 border-t border-cream-dark dark:border-neutral-700 max-w-2xl">
+                        <div class="max-w-xs">
+                            <label for="tax_year" class="block text-sm font-medium text-charcoal dark:text-gray-200 mb-1.5">{{ _("settings.tax_year") if _ else "Steuerjahr" }}</label>
+                            <select id="tax_year" name="tax_year"
+                                class="settings-input w-full px-3 py-2 bg-cream/50 dark:bg-neutral-900 border border-cream-dark dark:border-neutral-600 rounded-lg text-sm text-charcoal dark:text-white focus:border-amber dark:focus:border-amber focus:ring-0 transition-all">
+                                {% for year in available_years %}
+                                <option value="{{ year }}" {% if (settings.tax_year or current_year) == year %}selected{% endif %}>
+                                    {{ year }}{% if year == current_year %} ({{ _("settings.current") if _ else "Aktuell" }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-[10px] text-slate dark:text-gray-500">{{ _("settings.tax_year_desc") if _ else "Jahr für Statistiken und Berichte" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast Container (for OOB swaps) -->
+<div id="settings-toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showPanel(panelId) {
+        // Hide all panels
+        document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+        // Deactivate all nav items
+        document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
+
+        // Show selected panel
+        const panel = document.getElementById('panel-' + panelId);
+        if (panel) panel.classList.add('active');
+
+        // Activate nav item
+        const navItem = document.querySelector('.settings-nav-item[data-panel="' + panelId + '"]');
+        if (navItem) navItem.classList.add('active');
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const navItems = Array.from(document.querySelectorAll('.settings-nav-item'));
+            const activeIndex = navItems.findIndex(item => item.classList.contains('active'));
+
+            let nextIndex;
+            if (e.key === 'ArrowDown') {
+                nextIndex = (activeIndex + 1) % navItems.length;
+            } else {
+                nextIndex = (activeIndex - 1 + navItems.length) % navItems.length;
+            }
+
+            navItems[nextIndex].click();
+            navItems[nextIndex].focus();
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

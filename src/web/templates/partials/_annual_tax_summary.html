@@ -1,0 +1,32 @@
+<div id="annual-tax-summary" class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-6 shadow-sm">
+    <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white mb-4">{{ _("tax.annual_return_summary") if _ else "Steuererklärung" }} {{ current_year }}</h3>
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.estimated_est") if _ else "Geschätzte ESt" }}</span>
+            <span class="font-mono text-sm font-semibold text-charcoal dark:text-white">€{{ "{:,.2f}".format(tax_estimate.einkommensteuer).replace(",", " ").replace(".", ",") }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.prepayments_paid") if _ else "Vorauszahlungen bezahlt" }}</span>
+            <span class="font-mono text-sm font-semibold text-sage">−€{{ "{:,.2f}".format(paid_quarterly).replace(",", " ").replace(".", ",") }}</span>
+        </div>
+        <div class="border-t border-cream-dark dark:border-neutral-700 pt-3">
+            <div class="flex items-center justify-between">
+                <span class="font-medium text-charcoal dark:text-white">{{ _("tax.remaining_tax_due") if _ else "Noch zu zahlen" }}</span>
+                {% if remaining_income_tax > 0 %}
+                <span class="font-mono text-lg font-semibold text-terracotta">€{{ "{:,.2f}".format(remaining_income_tax).replace(",", " ").replace(".", ",") }}</span>
+                {% else %}
+                <span class="font-mono text-lg font-semibold text-sage">€0,00</span>
+                {% endif %}
+            </div>
+            {% if remaining_income_tax > 0 %}
+            <p class="text-xs text-slate dark:text-gray-500 mt-2">
+                {{ _("tax.due_with_return") if _ else "Fällig mit Steuererklärung" }}
+            </p>
+            {% else %}
+            <p class="text-xs text-sage mt-2">
+                {{ _("tax.prepayments_sufficient") if _ else "Vorauszahlungen decken geschätzte Steuer" }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>

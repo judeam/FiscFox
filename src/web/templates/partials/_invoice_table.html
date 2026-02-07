@@ -1,0 +1,19 @@
+{% for invoice in invoices %}
+{% include "partials/_invoice_row.html" %}
+{% else %}
+<tr>
+    <td colspan="6" class="px-4 py-16 text-center">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-14 h-14 bg-cream dark:bg-neutral-700 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("invoice.no_invoices") if _ else "Keine Rechnungen gefunden" }}</p>
+                <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("invoice.filter_empty_hint") if _ else "Keine Einträge für diesen Filter" }}</p>
+            </div>
+        </div>
+    </td>
+</tr>
+{% endfor %}

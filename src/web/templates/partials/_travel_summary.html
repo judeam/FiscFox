@@ -1,0 +1,41 @@
+<div class="space-y-4">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("travel.per_diem_total") if _ else "Verpflegungspauschalen" }}</p>
+            <p class="font-mono text-xl font-bold text-forest dark:text-sage">
+                €{{ "{:,.2f}".format(totals.per_diem_total).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+            <p class="text-xs text-slate dark:text-gray-400 uppercase tracking-wide">{{ _("travel.km_total") if _ else "Fahrtkosten" }}</p>
+            <p class="font-mono text-xl font-bold text-forest dark:text-sage">
+                €{{ "{:,.2f}".format(totals.km_total).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+        <div class="bg-gradient-to-r from-forest to-forest-light dark:from-neutral-700 dark:to-neutral-600 rounded-xl p-4">
+            <p class="text-xs text-white/80 uppercase tracking-wide">{{ _("travel.total_deduction") if _ else "Gesamt Abzug" }}</p>
+            <p class="font-mono text-xl font-bold text-white">
+                €{{ "{:,.2f}".format(totals.total_deduction).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4">
+        <h4 class="font-medium text-charcoal dark:text-white mb-4">{{ _("travel.monthly_breakdown") if _ else "Monatliche Übersicht" }}</h4>
+        <div class="space-y-2">
+            {% for month_key, data in monthly.items() %}
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-charcoal dark:text-white">{{ month_key }}</span>
+                <div class="flex items-center gap-4">
+                    <span class="text-slate dark:text-gray-400">{{ data.trip_count }} {{ _("travel.trips") if _ else "Reisen" }}</span>
+                    <span class="font-mono text-forest dark:text-sage">
+                        €{{ "{:,.2f}".format(data.total).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

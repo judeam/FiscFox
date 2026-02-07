@@ -1,0 +1,8 @@
+{% for provider in providers %}
+<option value="{{ provider.id }}" data-type="{{ provider.type.value }}">
+    {{ provider.short_name or provider.name }}
+    ({{ _("insurance_type." + provider.type.value) if _ else provider.type.value | upper }})
+</option>
+{% else %}
+<option value="" disabled>{{ _("health_insurance.no_providers") if _ else "Keine Versicherungen gefunden" }}</option>
+{% endfor %}

@@ -1,0 +1,19 @@
+{% for payment in payments %}
+{% include "partials/_health_insurance_row.html" %}
+{% else %}
+<tr>
+    <td colspan="6" class="px-4 py-16 text-center">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-14 h-14 bg-cream dark:bg-neutral-700 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("health_insurance.no_payments_filter") if _ else "Keine Zahlungen gefunden" }}</p>
+                <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("health_insurance.try_other_filter") if _ else "Versuche einen anderen Filter" }}</p>
+            </div>
+        </div>
+    </td>
+</tr>
+{% endfor %}

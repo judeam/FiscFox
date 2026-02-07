@@ -1,0 +1,186 @@
+{# Receipt scan upload form for expense OCR #}
+<div
+    id="receipt-scan-container"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-amber dark:border-amber/50 p-6 space-y-4 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber/10 rounded-lg">
+                <svg class="w-5 h-5 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">
+                {{ _("expense.ocr.scan_receipt") if _ else "Beleg scannen" }}
+            </h3>
+        </div>
+        <button
+            type="button"
+            onclick="document.getElementById('expense-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+            class="text-slate hover:text-charcoal dark:hover:text-white transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    {# OCR Engine Status #}
+    <div class="flex items-center gap-2 text-sm">
+        <span class="text-slate dark:text-gray-400">{{ _("expense.ocr.engine") if _ else "OCR-Engine" }}:</span>
+        {% if engines.paddleocr %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-forest/10 text-forest dark:bg-forest/20 rounded-full text-xs font-medium">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            PaddleOCR
+        </span>
+        {% elif engines.tesseract %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber/10 text-amber-dark dark:bg-amber/20 rounded-full text-xs font-medium">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            Tesseract (Fallback)
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-coral/10 text-coral dark:bg-coral/20 rounded-full text-xs font-medium">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            {{ _("expense.ocr.no_engine") if _ else "Nicht verfügbar" }}
+        </span>
+        {% endif %}
+    </div>
+
+    <form
+        hx-post="/expenses/scan"
+        hx-target="#receipt-scan-container"
+        hx-swap="outerHTML"
+        hx-encoding="multipart/form-data"
+        hx-indicator="#scan-loading"
+        class="space-y-4"
+    >
+        {# File Upload Area #}
+        <div
+            id="drop-zone"
+            class="relative border-2 border-dashed border-cream-dark dark:border-neutral-600 rounded-lg p-8 text-center hover:border-amber dark:hover:border-amber transition-colors cursor-pointer"
+            ondragover="event.preventDefault(); this.classList.add('border-amber', 'bg-amber/5')"
+            ondragleave="this.classList.remove('border-amber', 'bg-amber/5')"
+            ondrop="event.preventDefault(); this.classList.remove('border-amber', 'bg-amber/5'); document.getElementById('receipt-input').files = event.dataTransfer.files; updateFileName()"
+            onclick="document.getElementById('receipt-input').click()"
+        >
+            <input
+                type="file"
+                id="receipt-input"
+                name="receipt"
+                accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp"
+                required
+                class="hidden"
+                onchange="updateFileName()"
+            >
+
+            <div id="upload-placeholder" class="space-y-3">
+                <div class="mx-auto w-12 h-12 rounded-full bg-cream dark:bg-neutral-700 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-slate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-charcoal dark:text-white font-medium">
+                        {{ _("expense.ocr.drop_receipt") if _ else "Beleg hier ablegen oder klicken" }}
+                    </p>
+                    <p class="text-sm text-slate dark:text-gray-400 mt-1">
+                        {{ _("expense.ocr.supported_formats") if _ else "JPG, PNG, TIFF, WebP" }}
+                    </p>
+                </div>
+            </div>
+
+            <div id="file-selected" class="hidden space-y-2">
+                <div class="mx-auto w-12 h-12 rounded-full bg-forest/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p id="file-name" class="text-charcoal dark:text-white font-medium truncate max-w-xs mx-auto"></p>
+                <button
+                    type="button"
+                    onclick="event.stopPropagation(); clearFile()"
+                    class="text-sm text-coral hover:text-coral-dark transition-colors"
+                >
+                    {{ _("action.remove") if _ else "Entfernen" }}
+                </button>
+            </div>
+        </div>
+
+        {# Options #}
+        <div class="flex items-center gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    name="use_llm"
+                    value="true"
+                    checked
+                    class="w-4 h-4 text-amber bg-cream dark:bg-neutral-700 border-cream-dark dark:border-neutral-600 rounded focus:ring-amber focus:ring-offset-0"
+                >
+                <span class="text-sm text-slate dark:text-gray-400">
+                    {{ _("expense.ocr.use_ai") if _ else "KI-Verbesserung (bei niedriger Konfidenz)" }}
+                </span>
+            </label>
+        </div>
+
+        {# Loading Indicator #}
+        <div id="scan-loading" class="htmx-indicator flex items-center justify-center gap-3 py-4">
+            <svg class="animate-spin h-5 w-5 text-amber" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-slate dark:text-gray-400">{{ _("expense.ocr.scanning") if _ else "Beleg wird gescannt..." }}</span>
+        </div>
+
+        {# Actions #}
+        <div class="flex justify-end gap-3 pt-2">
+            <button
+                type="button"
+                onclick="document.getElementById('expense-form-container').innerHTML = ''; if(typeof updateMainScroll === 'function') updateMainScroll();"
+                class="px-4 py-2 text-slate hover:text-charcoal dark:hover:text-white font-medium transition-colors"
+            >
+                {{ _("action.cancel") if _ else "Abbrechen" }}
+            </button>
+            <button
+                type="submit"
+                class="px-6 py-2 bg-amber hover:bg-amber-dark text-charcoal font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                {{ _("expense.ocr.scan_button") if _ else "Scannen" }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateFileName() {
+    const input = document.getElementById('receipt-input');
+    const placeholder = document.getElementById('upload-placeholder');
+    const selected = document.getElementById('file-selected');
+    const fileName = document.getElementById('file-name');
+
+    if (input.files && input.files.length > 0) {
+        placeholder.classList.add('hidden');
+        selected.classList.remove('hidden');
+        fileName.textContent = input.files[0].name;
+    }
+}
+
+function clearFile() {
+    const input = document.getElementById('receipt-input');
+    const placeholder = document.getElementById('upload-placeholder');
+    const selected = document.getElementById('file-selected');
+
+    input.value = '';
+    placeholder.classList.remove('hidden');
+    selected.classList.add('hidden');
+}
+</script>

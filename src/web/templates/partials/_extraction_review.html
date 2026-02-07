@@ -1,0 +1,790 @@
+<div
+    id="upload-container"
+    class="bg-white dark:bg-neutral-800 rounded-xl border-2 border-dashed border-forest dark:border-forest-light/50 p-6 animate-[fadeSlideUp_0.3s_ease-out]"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4 mb-6">
+        <div class="flex items-center gap-3">
+            <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">
+                Review Extracted Data
+            </h3>
+            <!-- Confidence Badge -->
+            {% if confidence_level.value == "high" %}
+            <span class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                High Confidence ({{ confidence_percent }}%)
+            </span>
+            {% elif confidence_level.value == "medium" %}
+            <span class="px-2 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full flex items-center gap-1">
+                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                Please Review ({{ confidence_percent }}%)
+            </span>
+            {% else %}
+            <span class="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full flex items-center gap-1">
+                <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                Manual Entry Recommended ({{ confidence_percent }}%)
+            </span>
+            {% endif %}
+        </div>
+        <button
+            type="button"
+            hx-delete="/upload/{{ doc_id }}"
+            hx-target="#upload-container"
+            hx-swap="outerHTML"
+            hx-confirm="Cancel this upload? The file will be deleted."
+            class="text-slate hover:text-red-500 dark:hover:text-red-400 transition-colors"
+        >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Warnings and Errors -->
+    {% if warnings %}
+    <div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+        <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-300">Please note:</p>
+                <ul class="text-sm text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside">
+                    {% for warning in warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if errors %}
+    <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <div class="flex items-start gap-2">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-red-800 dark:text-red-300">Extraction errors:</p>
+                <ul class="text-sm text-red-700 dark:text-red-400 mt-1 list-disc list-inside">
+                    {% for error in errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form
+        id="review-form"
+        hx-post="/upload/{{ doc_id }}/confirm"
+        hx-target="#upload-form-container"
+        hx-target-4*="#upload-form-container"
+        hx-swap="innerHTML"
+        class="space-y-4"
+    >
+        <!-- Extraction Method Info -->
+        <div class="text-xs text-slate dark:text-gray-400 mb-4">
+            Extracted via: <span class="font-medium">{{ method|upper }}</span>
+        </div>
+
+        <!-- Client Selection Section -->
+        <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-lg p-4 mb-4">
+            <h4 class="font-medium text-charcoal dark:text-white mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Client
+            </h4>
+
+            {% if matched_clients %}
+            <!-- Client Mode Toggle -->
+            <div class="flex gap-2 mb-4">
+                <button
+                    type="button"
+                    onclick="toggleClientMode('existing')"
+                    id="btn-existing-client"
+                    class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-forest text-white"
+                >
+                    Use Existing Client
+                </button>
+                <button
+                    type="button"
+                    onclick="toggleClientMode('new')"
+                    id="btn-new-client"
+                    class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-cream dark:bg-neutral-600 text-charcoal dark:text-white border border-cream-dark dark:border-neutral-500"
+                >
+                    Create New Client
+                </button>
+            </div>
+
+            <!-- Existing Client Selection -->
+            <div id="existing-client-section" class="space-y-3">
+                <p class="text-sm text-slate dark:text-gray-400 mb-2">
+                    Found {{ matched_clients|length }} potential match{% if matched_clients|length > 1 %}es{% endif %}:
+                </p>
+                <div class="space-y-2">
+                    {% for client, confidence in matched_clients %}
+                    <label class="flex items-center p-3 bg-white dark:bg-neutral-700 rounded-lg border border-cream-dark dark:border-neutral-600 cursor-pointer hover:border-forest dark:hover:border-forest-light transition-colors">
+                        <input
+                            type="radio"
+                            name="existing_client_id"
+                            value="{{ client.id }}"
+                            {% if loop.first %}checked{% endif %}
+                            class="w-4 h-4 text-forest focus:ring-forest border-gray-300"
+                        >
+                        <div class="ml-3 flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium text-charcoal dark:text-white">{{ client.name }}</span>
+                                {% if confidence >= 0.9 %}
+                                <span class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                                    Exact match
+                                </span>
+                                {% elif confidence >= 0.7 %}
+                                <span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full">
+                                    Likely match
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-slate dark:text-gray-400">
+                                {% if client.city %}{{ client.city }}{% endif %}
+                                {% if client.vat_id %} &bull; {{ client.vat_id }}{% endif %}
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- New Client Form -->
+            <div id="new-client-section" class="{% if matched_clients %}hidden{% endif %} space-y-3">
+                {% set client_name_field = extraction.client.name if extraction and extraction.client else None %}
+                {% set vat_id_field = extraction.client.vat_id if extraction and extraction.client else None %}
+                {% set street_field = extraction.client.street if extraction and extraction.client else None %}
+                {% set zip_field = extraction.client.zip_code if extraction and extraction.client else None %}
+                {% set city_field = extraction.client.city if extraction and extraction.client else None %}
+                {% set country_field = extraction.client.country if extraction and extraction.client else None %}
+                {% set email_field = extraction.client.email if extraction and extraction.client else None %}
+                {% set phone_field = extraction.client.phone if extraction and extraction.client else None %}
+
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Client Name -->
+                    <div class="space-y-1">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                            Company Name
+                            {% if client_name_field and client_name_field.confidence %}
+                            <span class="w-2 h-2 rounded-full {% if client_name_field.confidence >= 0.8 %}bg-green-500{% elif client_name_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                            {% endif %}
+                        </label>
+                        <input
+                            type="text"
+                            name="client_name"
+                            value="{{ client_name_field.value if client_name_field and client_name_field.value else '' }}"
+                            placeholder="Enter company name"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- VAT ID -->
+                    <div class="space-y-1">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                            VAT ID
+                            {% if vat_id_field and vat_id_field.confidence %}
+                            <span class="w-2 h-2 rounded-full {% if vat_id_field.confidence >= 0.8 %}bg-green-500{% elif vat_id_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                            {% endif %}
+                        </label>
+                        <input
+                            type="text"
+                            name="client_vat_id"
+                            value="{{ vat_id_field.value if vat_id_field and vat_id_field.value else '' }}"
+                            placeholder="e.g., GB123456789"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- Street -->
+                    <div class="space-y-1 col-span-2">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">Street Address</label>
+                        <input
+                            type="text"
+                            name="client_street"
+                            value="{{ street_field.value if street_field and street_field.value else '' }}"
+                            placeholder="Street and number"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- ZIP Code -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">Postal Code</label>
+                        <input
+                            type="text"
+                            name="client_zip_code"
+                            value="{{ zip_field.value if zip_field and zip_field.value else '' }}"
+                            placeholder="e.g., DN14 9JW"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- City -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">City</label>
+                        <input
+                            type="text"
+                            name="client_city"
+                            value="{{ city_field.value if city_field and city_field.value else '' }}"
+                            placeholder="City"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- Country -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">Country</label>
+                        <select
+                            name="client_country"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                            {% set selected_country = country_field.value if country_field and country_field.value else 'DE' %}
+                            <option value="DE" {% if selected_country == 'DE' %}selected{% endif %}>Germany</option>
+                            <option value="GB" {% if selected_country == 'GB' %}selected{% endif %}>United Kingdom</option>
+                            <option value="AT" {% if selected_country == 'AT' %}selected{% endif %}>Austria</option>
+                            <option value="CH" {% if selected_country == 'CH' %}selected{% endif %}>Switzerland</option>
+                            <option value="NL" {% if selected_country == 'NL' %}selected{% endif %}>Netherlands</option>
+                            <option value="FR" {% if selected_country == 'FR' %}selected{% endif %}>France</option>
+                            <option value="US" {% if selected_country == 'US' %}selected{% endif %}>United States</option>
+                            <option value="IE" {% if selected_country == 'IE' %}selected{% endif %}>Ireland</option>
+                        </select>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">Email</label>
+                        <input
+                            type="email"
+                            name="client_email"
+                            value="{{ email_field.value if email_field and email_field.value else '' }}"
+                            placeholder="contact@company.com"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate dark:text-gray-400">Phone</label>
+                        <input
+                            type="tel"
+                            name="client_phone"
+                            value="{{ phone_field.value if phone_field and phone_field.value else '' }}"
+                            placeholder="+44 20 1234 5678"
+                            class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Details Section -->
+        <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-lg p-4">
+            <h4 class="font-medium text-charcoal dark:text-white mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Invoice Details
+            </h4>
+
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Invoice Number -->
+                {% set invoice_number_field = extraction.invoice_number if extraction else None %}
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                        Invoice Number
+                        {% if invoice_number_field and invoice_number_field.confidence %}
+                        <span class="w-2 h-2 rounded-full {% if invoice_number_field.confidence >= 0.8 %}bg-green-500{% elif invoice_number_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="text"
+                        name="invoice_number"
+                        value="{{ invoice_number_field.value if invoice_number_field and invoice_number_field.value else '' }}"
+                        placeholder="e.g., INV-2026-001"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                </div>
+
+                <!-- Invoice Date -->
+                {% set date_field = extraction.invoice_date if extraction else None %}
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                        Invoice Date
+                        {% if date_field and date_field.confidence %}
+                        <span class="w-2 h-2 rounded-full {% if date_field.confidence >= 0.8 %}bg-green-500{% elif date_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="date"
+                        name="invoice_date"
+                        value="{{ date_field.value.isoformat() if date_field and date_field.value else '' }}"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                </div>
+
+                <!-- Due Date -->
+                {% set due_date_field = extraction.due_date if extraction else None %}
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                        Due Date
+                        {% if due_date_field and due_date_field.confidence %}
+                        <span class="w-2 h-2 rounded-full {% if due_date_field.confidence >= 0.8 %}bg-green-500{% elif due_date_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="date"
+                        name="due_date"
+                        value="{{ due_date_field.value.isoformat() if due_date_field and due_date_field.value else '' }}"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                </div>
+
+                <!-- Amount Gross -->
+                {% set amount_gross_field = extraction.amount_gross if extraction else None %}
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                        Gross Amount
+                        {% if amount_gross_field and amount_gross_field.confidence %}
+                        <span class="w-2 h-2 rounded-full {% if amount_gross_field.confidence >= 0.8 %}bg-green-500{% elif amount_gross_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="number"
+                        name="amount_gross"
+                        step="0.01"
+                        min="0"
+                        value="{{ amount_gross_field.value if amount_gross_field and amount_gross_field.value else '' }}"
+                        placeholder="0.00"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                </div>
+
+                <!-- Amount Net -->
+                {% set amount_net_field = extraction.amount_net if extraction else None %}
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate dark:text-gray-400">
+                        Net Amount <span class="text-xs text-slate/50">(optional)</span>
+                    </label>
+                    <input
+                        type="number"
+                        name="amount_net"
+                        step="0.01"
+                        min="0"
+                        value="{{ amount_net_field.value if amount_net_field and amount_net_field.value else '' }}"
+                        placeholder="0.00"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                </div>
+
+                <!-- VAT Rate -->
+                {% set vat_rate_field = extraction.vat_rate if extraction else None %}
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate dark:text-gray-400">
+                        VAT Rate
+                        {% if vat_rate_field and vat_rate_field.confidence %}
+                        <span class="w-2 h-2 rounded-full {% if vat_rate_field.confidence >= 0.8 %}bg-green-500{% elif vat_rate_field.confidence >= 0.5 %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+                        {% endif %}
+                    </label>
+                    <select
+                        name="vat_rate"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white focus:outline-none focus:ring-2 focus:ring-forest focus:border-transparent text-sm"
+                    >
+                        {% for rate, label in vat_rates %}
+                        <option value="{{ rate }}" {% if vat_rate_field and vat_rate_field.value == rate %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Line Items Section -->
+        <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-lg p-4">
+            <h4 class="font-medium text-charcoal dark:text-white mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-forest" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                Line Items
+            </h4>
+
+            <!-- Compact Line Items Grid -->
+            <div id="line-items-container" class="space-y-2">
+                <!-- Header Row -->
+                <div class="grid grid-cols-[1fr_90px_52px_58px_72px_50px_80px_28px] gap-1 text-xs font-medium text-slate dark:text-gray-400 px-1 pb-1 border-b border-cream-dark dark:border-neutral-600">
+                    <span>Description</span>
+                    <span>Date</span>
+                    <span class="text-right">Qty</span>
+                    <span>Unit</span>
+                    <span class="text-right">Price</span>
+                    <span>VAT</span>
+                    <span class="text-right">Total</span>
+                    <span></span>
+                </div>
+
+                <!-- Line Items Body -->
+                <div id="line-items-body" class="space-y-1.5">
+                    {% if extraction and extraction.line_items %}
+                        {% for item in extraction.line_items %}
+                        <div class="line-item-row grid grid-cols-[1fr_90px_52px_58px_72px_50px_80px_28px] gap-1 items-center group">
+                            <!-- Description -->
+                            <input
+                                type="text"
+                                name="line_items[{{ loop.index0 }}][description]"
+                                value="{{ item.description }}"
+                                placeholder="Service/Product"
+                                title="{{ item.description }}"
+                                class="h-8 px-2 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-1 focus:ring-forest truncate"
+                            >
+                            <!-- Date -->
+                            <input
+                                type="date"
+                                name="line_items[{{ loop.index0 }}][service_date]"
+                                value="{{ item.service_date.isoformat() if item.service_date else '' }}"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+                            >
+                            <!-- Qty -->
+                            <input
+                                type="number"
+                                name="line_items[{{ loop.index0 }}][quantity]"
+                                value="{{ item.quantity }}"
+                                step="0.01"
+                                min="0"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <!-- Unit -->
+                            <select
+                                name="line_items[{{ loop.index0 }}][unit]"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                            >
+                                <option value="Stk." {% if item.unit == 'Stk.' %}selected{% endif %}>Stk.</option>
+                                <option value="Std." {% if item.unit == 'Std.' %}selected{% endif %}>Std.</option>
+                                <option value="Tage" {% if item.unit == 'Tage' %}selected{% endif %}>Tage</option>
+                                <option value="Mon." {% if item.unit == 'Monat' or item.unit == 'Mon.' %}selected{% endif %}>Mon.</option>
+                                <option value="Pau." {% if item.unit == 'Pausch.' or item.unit == 'Pau.' %}selected{% endif %}>Pau.</option>
+                            </select>
+                            <!-- Unit Price -->
+                            <input
+                                type="number"
+                                name="line_items[{{ loop.index0 }}][unit_price]"
+                                value="{{ item.unit_price if item.unit_price else '' }}"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <!-- VAT -->
+                            <select
+                                name="line_items[{{ loop.index0 }}][vat_rate]"
+                                class="h-8 px-0.5 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                            >
+                                <option value="0.19" {% if item.vat_rate == '0.19' %}selected{% endif %}>19%</option>
+                                <option value="0.07" {% if item.vat_rate == '0.07' %}selected{% endif %}>7%</option>
+                                <option value="0.00" {% if item.vat_rate == '0.00' %}selected{% endif %}>0%</option>
+                            </select>
+                            <!-- Total -->
+                            <input
+                                type="number"
+                                name="line_items[{{ loop.index0 }}][total]"
+                                value="{{ item.total if item.total else '' }}"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums font-medium placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <!-- Remove -->
+                            <button
+                                type="button"
+                                onclick="removeLineItem(this)"
+                                class="h-8 w-7 flex items-center justify-center text-slate/40 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Empty row template -->
+                        <div class="line-item-row grid grid-cols-[1fr_90px_52px_58px_72px_50px_80px_28px] gap-1 items-center group">
+                            <input
+                                type="text"
+                                name="line_items[0][description]"
+                                placeholder="Service/Product"
+                                class="h-8 px-2 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <input
+                                type="date"
+                                name="line_items[0][service_date]"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest [&::-webkit-calendar-picker-indicator]:opacity-50"
+                            >
+                            <input
+                                type="number"
+                                name="line_items[0][quantity]"
+                                value="1"
+                                step="0.01"
+                                min="0"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <select
+                                name="line_items[0][unit]"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                            >
+                                <option value="Stk.">Stk.</option>
+                                <option value="Std.">Std.</option>
+                                <option value="Tage">Tage</option>
+                                <option value="Mon.">Mon.</option>
+                                <option value="Pau.">Pau.</option>
+                            </select>
+                            <input
+                                type="number"
+                                name="line_items[0][unit_price]"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <select
+                                name="line_items[0][vat_rate]"
+                                class="h-8 px-0.5 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+                            >
+                                <option value="0.19">19%</option>
+                                <option value="0.07">7%</option>
+                                <option value="0.00">0%</option>
+                            </select>
+                            <input
+                                type="number"
+                                name="line_items[0][total]"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums font-medium placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+                            >
+                            <button
+                                type="button"
+                                onclick="removeLineItem(this)"
+                                class="h-8 w-7 flex items-center justify-center text-slate/40 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Add Line Item Button -->
+            <button
+                type="button"
+                onclick="addLineItem()"
+                class="mt-3 px-2.5 py-1 text-xs text-forest hover:text-forest-dark dark:text-forest-light dark:hover:text-forest border border-forest/30 dark:border-forest-light/30 hover:border-forest dark:hover:border-forest-light rounded transition-colors flex items-center gap-1"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Item
+            </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center pt-4 border-t border-cream-dark dark:border-neutral-700">
+            <div class="flex gap-2">
+                <!-- Retry with OCR button -->
+                {% if method != "ocr" %}
+                <button
+                    type="button"
+                    hx-post="/upload/{{ doc_id }}/retry"
+                    hx-target="#upload-container"
+                    hx-swap="outerHTML"
+                    hx-vals='{"force_ocr": "true"}'
+                    class="px-3 py-2 text-sm text-slate hover:text-charcoal dark:hover:text-white border border-slate/30 dark:border-neutral-600 rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Try OCR
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="flex gap-3">
+                <button
+                    type="button"
+                    hx-delete="/upload/{{ doc_id }}"
+                    hx-target="#upload-form-container"
+                    hx-swap="innerHTML"
+                    hx-confirm="Cancel this upload? The file will be deleted."
+                    class="px-4 py-2 text-slate hover:text-red-500 dark:hover:text-red-400 font-medium transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-forest hover:bg-forest-dark text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Confirm & Create Invoice
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleClientMode(mode) {
+    const existingSection = document.getElementById('existing-client-section');
+    const newSection = document.getElementById('new-client-section');
+    const btnExisting = document.getElementById('btn-existing-client');
+    const btnNew = document.getElementById('btn-new-client');
+
+    if (mode === 'existing') {
+        existingSection.classList.remove('hidden');
+        newSection.classList.add('hidden');
+        btnExisting.classList.remove('bg-cream', 'dark:bg-neutral-600', 'border', 'border-cream-dark', 'dark:border-neutral-500');
+        btnExisting.classList.add('bg-forest', 'text-white');
+        btnNew.classList.add('bg-cream', 'dark:bg-neutral-600', 'border', 'border-cream-dark', 'dark:border-neutral-500');
+        btnNew.classList.remove('bg-forest', 'text-white');
+
+        // Clear the existing_client_id when switching to new client mode
+        const radios = document.querySelectorAll('input[name="existing_client_id"]');
+        radios.forEach(r => r.disabled = false);
+    } else {
+        existingSection.classList.add('hidden');
+        newSection.classList.remove('hidden');
+        btnNew.classList.remove('bg-cream', 'dark:bg-neutral-600', 'border', 'border-cream-dark', 'dark:border-neutral-500');
+        btnNew.classList.add('bg-forest', 'text-white');
+        btnExisting.classList.add('bg-cream', 'dark:bg-neutral-600', 'border', 'border-cream-dark', 'dark:border-neutral-500');
+        btnExisting.classList.remove('bg-forest', 'text-white');
+
+        // Uncheck and disable all existing client radios when creating new
+        const radios = document.querySelectorAll('input[name="existing_client_id"]');
+        radios.forEach(r => {
+            r.checked = false;
+            r.disabled = true;
+        });
+    }
+}
+
+function addLineItem() {
+    const container = document.getElementById('line-items-body');
+    const rows = container.querySelectorAll('.line-item-row');
+    const newIndex = rows.length;
+
+    const newRow = document.createElement('div');
+    newRow.className = 'line-item-row grid grid-cols-[1fr_90px_52px_58px_72px_50px_80px_28px] gap-1 items-center group';
+    newRow.innerHTML = `
+        <input
+            type="text"
+            name="line_items[${newIndex}][description]"
+            placeholder="Service/Product"
+            class="h-8 px-2 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-1 focus:ring-forest"
+        >
+        <input
+            type="date"
+            name="line_items[${newIndex}][service_date]"
+            class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest [&::-webkit-calendar-picker-indicator]:opacity-50"
+        >
+        <input
+            type="number"
+            name="line_items[${newIndex}][quantity]"
+            value="1"
+            step="0.01"
+            min="0"
+            class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-forest"
+        >
+        <select
+            name="line_items[${newIndex}][unit]"
+            class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+        >
+            <option value="Stk.">Stk.</option>
+            <option value="Std.">Std.</option>
+            <option value="Tage">Tage</option>
+            <option value="Mon.">Mon.</option>
+            <option value="Pau.">Pau.</option>
+        </select>
+        <input
+            type="number"
+            name="line_items[${newIndex}][unit_price]"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+        >
+        <select
+            name="line_items[${newIndex}][vat_rate]"
+            class="h-8 px-0.5 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white focus:outline-none focus:ring-1 focus:ring-forest cursor-pointer"
+        >
+            <option value="0.19">19%</option>
+            <option value="0.07">7%</option>
+            <option value="0.00">0%</option>
+        </select>
+        <input
+            type="number"
+            name="line_items[${newIndex}][total]"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            class="h-8 px-1 text-xs bg-white dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded text-charcoal dark:text-white text-right tabular-nums font-medium placeholder:text-slate/40 focus:outline-none focus:ring-1 focus:ring-forest"
+        >
+        <button
+            type="button"
+            onclick="removeLineItem(this)"
+            class="h-8 w-7 flex items-center justify-center text-slate/40 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+            title="Remove"
+        >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    `;
+
+    container.appendChild(newRow);
+    // Focus the description input of the new row
+    newRow.querySelector('input[type="text"]').focus();
+}
+
+function removeLineItem(button) {
+    const container = document.getElementById('line-items-body');
+    const rows = container.querySelectorAll('.line-item-row');
+
+    // Don't remove if it's the only row
+    if (rows.length <= 1) {
+        return;
+    }
+
+    const row = button.closest('.line-item-row');
+    row.remove();
+
+    // Re-index remaining rows
+    reindexLineItems();
+}
+
+function reindexLineItems() {
+    const tbody = document.getElementById('line-items-body');
+    const rows = tbody.querySelectorAll('.line-item-row');
+
+    rows.forEach((row, index) => {
+        // Update all input/select names with new index
+        row.querySelectorAll('input, select').forEach(field => {
+            const name = field.getAttribute('name');
+            if (name) {
+                const newName = name.replace(/line_items\[\d+\]/, `line_items[${index}]`);
+                field.setAttribute('name', newName);
+            }
+        });
+    });
+}
+</script>

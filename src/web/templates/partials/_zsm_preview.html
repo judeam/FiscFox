@@ -1,0 +1,90 @@
+{# Zusammenfassende Meldung (EC Sales List) Preview #}
+<div class="space-y-5">
+    <h3 class="font-display text-xl font-semibold text-charcoal dark:text-white">
+        {{ _("report.zsm") if _ else "Zusammenfassende Meldung" }} - {{ data.period }}
+    </h3>
+
+    {# Summary Stats #}
+    <div class="grid grid-cols-2 gap-4">
+        <div class="p-4 bg-gradient-to-br from-sage/10 to-sage/5 dark:from-sage/20 dark:to-sage/10 rounded-xl border border-sage/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("report.eu_reverse_charge") if _ else "EU-Reverse-Charge Umsatz" }}</p>
+            <p class="font-mono text-2xl font-bold text-sage">{{ "{:,.2f}".format(data.total_reverse_charge).replace(",", " ").replace(".", ",") }} €</p>
+        </div>
+        <div class="p-4 bg-gradient-to-br from-forest/10 to-forest/5 dark:from-amber/20 dark:to-amber/10 rounded-xl border border-forest/20 dark:border-amber/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-1">{{ _("report.eu_clients") if _ else "Anzahl EU-Kunden" }}</p>
+            <p class="font-mono text-2xl font-bold text-forest dark:text-amber">{{ data.client_count }}</p>
+        </div>
+    </div>
+
+    {# Client Table #}
+    {% if data.entries %}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-cream-dark/50 dark:bg-neutral-700/50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">
+                        {{ _("report.zsm_vat_id") if _ else "USt-IdNr." }}
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">
+                        {{ _("report.zsm_country") if _ else "Land" }}
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">
+                        {{ _("client.company") if _ else "Kunde" }}
+                    </th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate dark:text-gray-400 uppercase tracking-wider">
+                        {{ _("report.zsm_amount") if _ else "Betrag" }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-cream-dark dark:divide-neutral-700">
+                {% for entry in data.entries %}
+                <tr class="hover:bg-cream-dark/20 dark:hover:bg-neutral-700/30 transition-colors">
+                    <td class="px-4 py-3 font-mono text-sm text-charcoal dark:text-white">
+                        {% if entry.vat_id %}
+                            {{ entry.vat_id }}
+                        {% else %}
+                            <span class="text-slate dark:text-gray-500 italic">{{ _("report.no_vat_id") if _ else "Keine USt-IdNr." }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-slate dark:text-gray-400">
+                        {{ _("country." + entry.country_code) if _ else entry.country_code }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-charcoal dark:text-white">
+                        {{ entry.client_name }}
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-right font-medium text-sage">
+                        {{ "{:,.2f}".format(entry.total_net).replace(",", " ").replace(".", ",") }} €
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-cream-dark/30 dark:bg-neutral-700/30">
+                <tr>
+                    <td colspan="3" class="px-4 py-3 text-sm font-semibold text-charcoal dark:text-white">
+                        {{ _("report.zsm_total") if _ else "Gesamtsumme EU-Umsätze" }}
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-right font-bold text-forest dark:text-amber">
+                        {{ "{:,.2f}".format(data.total_reverse_charge).replace(",", " ").replace(".", ",") }} €
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    {# No entries state #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-8 text-center">
+        <svg class="w-12 h-12 mx-auto text-slate dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="text-slate dark:text-gray-500">{{ _("report.zsm_no_entries") if _ else "Keine EU-Reverse-Charge-Umsätze im Zeitraum" }}</p>
+    </div>
+    {% endif %}
+
+    {# Filing Info #}
+    <div class="flex items-center gap-2 text-xs text-slate dark:text-gray-500">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>{{ _("report.zsm_deadline") if _ else "Abgabefrist: 25. des Folgemonats nach Quartalsende" }}</span>
+    </div>
+</div>

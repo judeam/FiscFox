@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <!-- Rich orange gradient for the fur -->
+    <linearGradient id="fur" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F77F00"/>
+      <stop offset="100%" stop-color="#E85D04"/>
+    </linearGradient>
+    <!-- Subtle gold for coin -->
+    <linearGradient id="coin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD166"/>
+      <stop offset="100%" stop-color="#E5A800"/>
+    </linearGradient>
+    <!-- Forest green background -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B4332"/>
+      <stop offset="100%" stop-color="#2D6A4F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+
+  <!-- Left ear - outer -->
+  <path d="M6 5 L10.5 12 L4 13 Z" fill="url(#fur)"/>
+  <!-- Left ear - inner -->
+  <path d="M7.2 7 L9.5 11 L5.5 11.8 Z" fill="#1B4332"/>
+
+  <!-- Right ear - outer -->
+  <path d="M26 5 L28 13 L21.5 12 Z" fill="url(#fur)"/>
+  <!-- Right ear - inner -->
+  <path d="M24.8 7 L26.5 11.8 L22.5 11 Z" fill="#1B4332"/>
+
+  <!-- Face shape -->
+  <path d="M16 8 Q6 10 7 18 Q8 24 16 25 Q24 24 25 18 Q26 10 16 8" fill="url(#fur)"/>
+
+  <!-- Forehead marking (V-shape) -->
+  <path d="M16 9 L13 13 L16 12 L19 13 Z" fill="#D35400" opacity="0.6"/>
+
+  <!-- Left cheek -->
+  <ellipse cx="10.5" cy="17" rx="3.2" ry="3" fill="#FDF6E3"/>
+  <!-- Right cheek -->
+  <ellipse cx="21.5" cy="17" rx="3.2" ry="3" fill="#FDF6E3"/>
+
+  <!-- Muzzle -->
+  <ellipse cx="16" cy="19" rx="4" ry="3.5" fill="#FDF6E3"/>
+
+  <!-- Nose -->
+  <ellipse cx="16" cy="17" rx="2" ry="1.4" fill="#2D2D2D"/>
+  <!-- Nose shine -->
+  <ellipse cx="15.3" cy="16.5" rx="0.6" ry="0.4" fill="#4D4D4D"/>
+
+  <!-- Left eye -->
+  <ellipse cx="11" cy="13.5" rx="1.8" ry="2.2" fill="#2D2D2D"/>
+  <!-- Right eye -->
+  <ellipse cx="21" cy="13.5" rx="1.8" ry="2.2" fill="#2D2D2D"/>
+
+  <!-- Eye shines - the clever glint -->
+  <circle cx="11.5" cy="12.8" r="0.7" fill="#FFF"/>
+  <circle cx="21.5" cy="12.8" r="0.7" fill="#FFF"/>
+
+  <!-- Subtle mouth line -->
+  <path d="M14 20.5 Q16 21.5 18 20.5" stroke="#D4A574" stroke-width="0.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Euro coin - integrated bottom right -->
+  <circle cx="25" cy="25" r="4.5" fill="url(#coin)" stroke="#C9940A" stroke-width="0.5"/>
+  <circle cx="25" cy="25" r="3.2" fill="none" stroke="#C9940A" stroke-width="0.4"/>
+  <text x="25" y="26.8" font-family="Georgia, serif" font-size="5" font-weight="bold" fill="#7A5C00" text-anchor="middle">€</text>
+</svg>

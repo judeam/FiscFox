@@ -1,0 +1,78 @@
+<div class="space-y-6" id="tax-deadlines-content">
+    <!-- Timeline Header -->
+    <div class="flex items-center gap-4 pb-4 border-b border-cream-dark dark:border-neutral-700">
+        <div class="flex gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-forest dark:bg-forest-light"></div>
+                <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.income_tax") if _ else "Einkommensteuer" }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-amber"></div>
+                <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.vat") if _ else "Umsatzsteuer" }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-terracotta"></div>
+                <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.urgent") if _ else "Dringend" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="relative">
+        <!-- Timeline Line -->
+        <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-cream-dark dark:bg-neutral-700"></div>
+
+        <!-- Deadline Items -->
+        <div class="space-y-6">
+            {% for deadline in deadlines %}
+            <div class="relative flex gap-4 group">
+                <!-- Timeline Dot -->
+                <div class="relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0
+                    {% if deadline.days_until <= 7 %}
+                    bg-terracotta text-white animate-pulse
+                    {% elif deadline.type == 'einkommensteuer' %}
+                    bg-forest text-white
+                    {% elif deadline.type == 'gewerbesteuer' %}
+                    bg-purple-600 text-white
+                    {% else %}
+                    bg-amber text-forest
+                    {% endif %}
+                ">
+                    <span class="font-mono font-bold text-sm">{{ deadline.days_until }}</span>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 bg-cream-dark/30 dark:bg-neutral-700/30 rounded-lg p-4 group-hover:bg-cream-dark/50 dark:group-hover:bg-neutral-700/50 transition-colors">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="font-medium text-charcoal dark:text-white">{{ deadline.name }}</p>
+                            <p class="text-sm text-slate dark:text-gray-400">{{ deadline.description }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-mono text-sm text-charcoal dark:text-white">{{ deadline.date.strftime('%d.%m.%Y') }}</p>
+                            <p class="text-xs text-slate dark:text-gray-400">
+                                {% if deadline.days_until == 0 %}
+                                {{ _("tax.today") if _ else "Heute!" }}
+                                {% elif deadline.days_until == 1 %}
+                                {{ _("tax.tomorrow") if _ else "Morgen" }}
+                                {% elif deadline.days_until < 0 %}
+                                {{ (deadline.days_until|abs) }} {{ _("tax.days_overdue") if _ else "Tage überfällig" }}
+                                {% else %}
+                                {{ _("tax.in_x_days") if _ else "in" }} {{ deadline.days_until }} {{ _("tax.days") if _ else "Tagen" }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if deadline.amount %}
+                    <div class="mt-3 pt-3 border-t border-cream-dark dark:border-neutral-600 flex items-center justify-between">
+                        <span class="text-sm text-slate dark:text-gray-400">{{ _("tax.estimated_amount") if _ else "Geschätzter Betrag:" }}</span>
+                        <span class="font-mono font-semibold text-charcoal dark:text-white">€{{ "{:,.2f}".format(deadline.amount).replace(",", " ").replace(".", ",") }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

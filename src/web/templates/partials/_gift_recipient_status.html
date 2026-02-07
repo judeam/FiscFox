@@ -1,0 +1,21 @@
+<div class="bg-{% if status.is_over_limit %}terracotta/10{% elif status.is_near_limit %}amber/10{% else %}forest/10{% endif %} rounded-lg p-3">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm font-medium text-charcoal dark:text-white">{{ status.recipient_name }}</p>
+            <p class="text-xs text-slate dark:text-gray-400">{{ _("gift.year") if _ else "Jahr" }} {{ status.year }}</p>
+        </div>
+        <div class="text-right">
+            <p class="font-mono text-lg font-semibold {% if status.is_over_limit %}text-terracotta{% elif status.is_near_limit %}text-amber-dark dark:text-amber{% else %}text-forest dark:text-sage{% endif %}">
+                €{{ "{:,.2f}".format(status.total_gifts_net).replace(",", " ").replace(".", ",").replace(" ", ".") }} / €{{ status.limit }}
+            </p>
+            <p class="text-xs text-slate dark:text-gray-400">
+                {{ _("gift.remaining") if _ else "Verbleibend" }}: €{{ "{:,.2f}".format(status.remaining).replace(",", " ").replace(".", ",").replace(" ", ".") }}
+            </p>
+        </div>
+    </div>
+    {% if status.is_over_limit %}
+    <p class="mt-2 text-xs text-terracotta">{{ _("gift.over_limit_warning") if _ else "Grenze überschritten! Alle Geschenke an diesen Empfänger sind nicht abzugsfähig." }}</p>
+    {% elif status.is_near_limit %}
+    <p class="mt-2 text-xs text-amber-dark dark:text-amber">{{ _("gift.near_limit_warning") if _ else "Achtung: Grenze fast erreicht!" }}</p>
+    {% endif %}
+</div>

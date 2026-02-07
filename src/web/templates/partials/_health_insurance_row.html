@@ -1,0 +1,94 @@
+<tr id="health-insurance-row-{{ payment.id }}" class="hover:bg-cream/30 dark:hover:bg-neutral-700/20 transition-colors group">
+    <td class="px-4 py-3">
+        <span class="font-mono text-xs text-charcoal dark:text-white">{{ payment.date.strftime('%d.%m.%Y') }}</span>
+    </td>
+    <td class="px-4 py-3">
+        <div class="flex items-center gap-2">
+            <!-- Provider Logo/Initial -->
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0
+                {% if payment.insurance_type.value == 'gkv' %}bg-blue-100 dark:bg-blue-900/30{% else %}bg-forest/10 dark:bg-forest/20{% endif %}">
+                {% if payment.provider and payment.provider.logo_filename %}
+                <img src="/static/logos/insurance/{{ payment.provider.logo_filename }}"
+                     alt="{{ payment.provider.short_name or payment.provider.name }}"
+                     class="w-5 h-5 object-contain">
+                {% else %}
+                <span class="text-[9px] font-bold
+                    {% if payment.insurance_type.value == 'gkv' %}text-blue-600 dark:text-blue-400{% else %}text-forest dark:text-sage{% endif %}">
+                    {{ (payment.provider.short_name or payment.provider.name)[:3] | upper if payment.provider else "INS" }}
+                </span>
+                {% endif %}
+            </div>
+            <div class="min-w-0">
+                <p class="text-sm font-medium text-charcoal dark:text-white truncate max-w-[180px]">
+                    {{ payment.provider.short_name or payment.provider.name if payment.provider else "Unbekannt" }}
+                </p>
+                <p class="text-[10px] text-slate dark:text-gray-500">
+                    {{ _("insurance_type." + payment.insurance_type.value) if _ else payment.insurance_type.value | upper }}
+                    {% if payment.has_krankengeld %}
+                    <span class="text-rose-500 ml-1">({{ _("health_insurance.with_krankengeld") if _ else "+Krankengeld" }})</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </td>
+    <td class="px-4 py-3">
+        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold
+            {% if payment.coverage_type.value == 'basis_krankenversicherung' %}bg-forest/10 dark:bg-forest/20 text-forest dark:text-sage
+            {% elif payment.coverage_type.value == 'pflegepflichtversicherung' %}bg-sage/20 dark:bg-sage/20 text-sage dark:text-sage
+            {% elif payment.coverage_type.value == 'wahlleistungen' %}bg-amber/10 dark:bg-amber/20 text-amber-dark dark:text-amber
+            {% else %}bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400{% endif %}
+        ">
+            {% if payment.coverage_type.value == 'basis_krankenversicherung' %}
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            {% elif payment.coverage_type.value == 'pflegepflichtversicherung' %}
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            {% elif payment.coverage_type.value == 'wahlleistungen' %}
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+            {% else %}
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            {% endif %}
+            {{ _("coverage." + payment.coverage_type.value) if _ else payment.coverage_type.value | replace("_", " ") | capitalize }}
+        </span>
+    </td>
+    <td class="px-4 py-3 text-right">
+        <p class="font-mono text-sm font-semibold text-charcoal dark:text-white">
+            {{ "{:,.2f}".format(payment.amount).replace(",", " ").replace(".", ",") }}
+        </p>
+    </td>
+    <td class="px-4 py-3 text-right">
+        <p class="font-mono text-sm font-semibold
+            {% if payment.deductible_amount == payment.amount %}text-forest dark:text-sage
+            {% else %}text-amber-dark dark:text-amber{% endif %}">
+            {{ "{:,.2f}".format(payment.deductible_amount).replace(",", " ").replace(".", ",") }}
+        </p>
+        {% if payment.deductible_amount != payment.amount %}
+        <p class="text-[10px] font-mono text-slate dark:text-gray-500">
+            -{{ "{:,.2f}".format(payment.amount - payment.deductible_amount).replace(",", " ").replace(".", ",") }}
+        </p>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-right">
+        <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+                hx-delete="/krankenversicherung/{{ payment.id }}"
+                hx-target="#health-insurance-row-{{ payment.id }}"
+                hx-swap="outerHTML"
+                hx-confirm="{{ _('health_insurance.confirm_delete') if _ else 'Diese Zahlung wirklich loschen?' }}"
+                class="p-1.5 text-slate hover:text-terracotta hover:bg-terracotta/10 rounded-md transition-colors"
+                title="{{ _('action.delete') if _ else 'Loschen' }}"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    </td>
+</tr>

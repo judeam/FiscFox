@@ -1,0 +1,11 @@
+{% if clients %}
+    {% for client in clients %}
+        {% include "partials/_client_row.html" %}
+    {% endfor %}
+{% else %}
+<tr>
+    <td colspan="4" class="px-4 py-6 text-center text-slate dark:text-gray-500">
+        {{ _("client.no_results") if _ else "Keine Kunden gefunden" }}
+    </td>
+</tr>
+{% endif %}

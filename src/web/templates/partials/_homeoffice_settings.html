@@ -1,0 +1,125 @@
+<form
+    hx-post="/homeoffice/settings/{{ year }}"
+    hx-target="#homeoffice-settings"
+    hx-swap="outerHTML"
+    class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-6 space-y-6"
+>
+    <div class="flex items-center justify-between border-b border-cream-dark dark:border-neutral-700 pb-4">
+        <h3 class="font-display text-lg font-semibold text-charcoal dark:text-white">
+            {{ _("homeoffice.settings_title") if _ else "Homeoffice-Einstellungen" }} {{ year }}
+        </h3>
+        {% if saved %}
+        <span class="text-sm text-forest dark:text-sage flex items-center gap-1">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            {{ _("form.saved") if _ else "Gespeichert" }}
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Method Selection -->
+    <div class="space-y-4">
+        <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("homeoffice.method") if _ else "Abzugsmethode" }}</p>
+
+        <label class="flex items-start gap-3 p-4 bg-cream/50 dark:bg-neutral-700/50 rounded-lg cursor-pointer border-2 transition-all {% if not settings or settings.method == 'pauschale' %}border-amber{% else %}border-transparent{% endif %}">
+            <input
+                type="radio"
+                name="method"
+                value="pauschale"
+                {% if not settings or settings.method == 'pauschale' %}checked{% endif %}
+                class="mt-1 w-4 h-4 text-amber focus:ring-amber"
+                onchange="document.getElementById('arbeitszimmer-fields').classList.add('hidden')"
+            >
+            <div>
+                <p class="font-medium text-charcoal dark:text-white">{{ _("homeoffice.pauschale") if _ else "Homeoffice-Pauschale" }}</p>
+                <p class="text-sm text-slate dark:text-gray-400">€{{ daily_rate }}/Tag, max {{ max_days }} Tage = €{{ annual_cap }}</p>
+                <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("homeoffice.pauschale_desc") if _ else "Für Arbeit von zuhause ohne separates Arbeitszimmer" }}</p>
+            </div>
+        </label>
+
+        <label class="flex items-start gap-3 p-4 bg-cream/50 dark:bg-neutral-700/50 rounded-lg cursor-pointer border-2 transition-all {% if settings and settings.method == 'arbeitszimmer_flat' %}border-amber{% else %}border-transparent{% endif %}">
+            <input
+                type="radio"
+                name="method"
+                value="arbeitszimmer_flat"
+                {% if settings and settings.method == 'arbeitszimmer_flat' %}checked{% endif %}
+                class="mt-1 w-4 h-4 text-amber focus:ring-amber"
+                onchange="document.getElementById('arbeitszimmer-fields').classList.add('hidden')"
+            >
+            <div>
+                <p class="font-medium text-charcoal dark:text-white">{{ _("homeoffice.arbeitszimmer_flat") if _ else "Arbeitszimmer (Pauschale €1.260)" }}</p>
+                <p class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.arbeitszimmer_flat_desc") if _ else "Separates Arbeitszimmer, Mittelpunkt der Tätigkeit - Jahrespauschale" }}</p>
+            </div>
+        </label>
+
+        <label class="flex items-start gap-3 p-4 bg-cream/50 dark:bg-neutral-700/50 rounded-lg cursor-pointer border-2 transition-all {% if settings and settings.method == 'arbeitszimmer_actual' %}border-amber{% else %}border-transparent{% endif %}">
+            <input
+                type="radio"
+                name="method"
+                value="arbeitszimmer_actual"
+                {% if settings and settings.method == 'arbeitszimmer_actual' %}checked{% endif %}
+                class="mt-1 w-4 h-4 text-amber focus:ring-amber"
+                onchange="document.getElementById('arbeitszimmer-fields').classList.remove('hidden')"
+            >
+            <div>
+                <p class="font-medium text-charcoal dark:text-white">{{ _("homeoffice.arbeitszimmer_actual") if _ else "Arbeitszimmer (tatsächliche Kosten)" }}</p>
+                <p class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.arbeitszimmer_actual_desc") if _ else "Separates Arbeitszimmer, Mittelpunkt der Tätigkeit - anteilige Kosten" }}</p>
+            </div>
+        </label>
+    </div>
+
+    <!-- Arbeitszimmer Details (hidden by default) -->
+    <div id="arbeitszimmer-fields" class="{% if not settings or settings.method != 'arbeitszimmer_actual' %}hidden{% endif %} space-y-4 border-t border-cream-dark dark:border-neutral-700 pt-4">
+        <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("homeoffice.room_details") if _ else "Raumangaben" }}</p>
+
+        <div class="grid grid-cols-3 gap-4">
+            <div class="space-y-1">
+                <label class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.room_sqm") if _ else "Arbeitszimmer (m²)" }}</label>
+                <input
+                    type="number"
+                    name="room_sqm"
+                    step="0.1"
+                    min="0"
+                    value="{{ settings.room_sqm if settings and settings.room_sqm else '' }}"
+                    placeholder="15"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.total_sqm") if _ else "Wohnung gesamt (m²)" }}</label>
+                <input
+                    type="number"
+                    name="total_sqm"
+                    step="0.1"
+                    min="0"
+                    value="{{ settings.total_sqm if settings and settings.total_sqm else '' }}"
+                    placeholder="80"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.monthly_costs") if _ else "Monatl. Kosten (€)" }}</label>
+                <input
+                    type="number"
+                    name="monthly_costs"
+                    step="0.01"
+                    min="0"
+                    value="{{ settings.monthly_costs if settings and settings.monthly_costs else '' }}"
+                    placeholder="1000"
+                    class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+                >
+                <p class="text-xs text-slate dark:text-gray-400">{{ _("homeoffice.costs_hint") if _ else "Miete + Nebenkosten" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <button
+        type="submit"
+        class="w-full py-3 bg-amber hover:bg-amber-dark text-forest font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+    >
+        {{ _("homeoffice.save_settings") if _ else "Einstellungen speichern" }}
+    </button>
+</form>

@@ -1,0 +1,60 @@
+<form
+    hx-post="/homeoffice/days/add"
+    hx-target="#homeoffice-day-list"
+    hx-swap="afterbegin"
+    hx-on::after-request="this.reset();"
+    class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark dark:border-neutral-700 p-4 space-y-4"
+>
+    <div class="flex items-center gap-4">
+        <div class="flex-1 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("homeoffice.date") if _ else "Datum" }}</label>
+            <input
+                type="date"
+                name="date"
+                required
+                value="{{ today }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <div class="flex-1 space-y-1">
+            <label class="text-sm font-medium text-slate dark:text-gray-400">{{ _("homeoffice.notes") if _ else "Notiz (optional)" }}</label>
+            <input
+                type="text"
+                name="notes"
+                maxlength="200"
+                placeholder="{{ _('homeoffice.notes_placeholder') if _ else 'z.B. Projektarbeit' }}"
+                class="w-full px-4 py-2.5 bg-cream dark:bg-neutral-700 border border-cream-dark dark:border-neutral-600 rounded-lg text-charcoal dark:text-white placeholder:text-slate/50 focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-all"
+            >
+        </div>
+
+        <button
+            type="submit"
+            class="mt-6 px-6 py-2.5 bg-amber hover:bg-amber-dark text-forest font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+        >
+            {{ _("homeoffice.add_day") if _ else "Tag erfassen" }}
+        </button>
+    </div>
+
+    <!-- Progress indicator -->
+    <div class="bg-cream/50 dark:bg-neutral-700/50 rounded-lg p-3">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate dark:text-gray-400">{{ _("homeoffice.progress") if _ else "Jahresfortschritt" }}</span>
+            <span class="font-mono text-sm text-charcoal dark:text-white">
+                {{ summary.day_count }}/{{ summary.max_days }} {{ _("homeoffice.days") if _ else "Tage" }}
+            </span>
+        </div>
+        <div class="w-full bg-cream-dark dark:bg-neutral-600 rounded-full h-2">
+            <div
+                class="h-2 rounded-full {% if summary.day_count >= summary.max_days %}bg-terracotta{% elif summary.day_count >= summary.max_days * 0.8 %}bg-amber{% else %}bg-forest{% endif %} transition-all"
+                style="width: {{ (summary.day_count / summary.max_days * 100)|int }}%"
+            ></div>
+        </div>
+        <p class="mt-1 text-xs text-slate dark:text-gray-400">
+            {% if summary.remaining_days is not none %}
+            {{ _("homeoffice.remaining") if _ else "Verbleibend" }}: {{ summary.remaining_days }} {{ _("homeoffice.days") if _ else "Tage" }}
+            (€{{ "{:,.2f}".format(summary.remaining_days * summary.daily_rate).replace(",", " ").replace(".", ",").replace(" ", ".") }})
+            {% endif %}
+        </p>
+    </div>
+</form>

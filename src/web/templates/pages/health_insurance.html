@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("health_insurance.title") if _ else "Krankenversicherung" }}{% endblock %}
+
+{% block content %}
+<div class="relative z-10 max-w-[1600px] mx-auto flex-1 flex flex-col min-h-0 page-enter">
+
+    <!-- Compact Header Row -->
+    <header class="flex items-center justify-between mb-4 flex-shrink-0 hero-enter">
+        <div class="flex items-center gap-6">
+            <h1 class="font-display text-2xl font-bold text-charcoal dark:text-white tracking-tight">
+                {{ _("health_insurance.title") if _ else "Krankenversicherung" }}
+            </h1>
+            <span class="px-2.5 py-1 bg-cream/70 dark:bg-neutral-700 rounded-lg text-sm font-semibold text-charcoal dark:text-white">
+                {{ current_year }}
+            </span>
+        </div>
+        <button
+            hx-get="/krankenversicherung/form"
+            hx-target="#health-insurance-form-container"
+            hx-swap="innerHTML"
+            class="flex items-center gap-2 px-4 py-2 bg-amber hover:bg-amber-dark text-forest font-semibold text-sm rounded-lg transition-all shadow-sm hover:shadow-md"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ _("health_insurance.new_payment") if _ else "Neue Zahlung" }}
+        </button>
+    </header>
+
+    <!-- Form Container (HTMX target) -->
+    <div id="health-insurance-form-container" class="flex-shrink-0"></div>
+
+    <!-- Main Content Grid -->
+    <div class="flex-1 grid grid-cols-12 gap-4 min-h-0 overflow-hidden">
+
+        <!-- Left Column: Stats + Tax Info -->
+        <div class="col-span-3 flex flex-col gap-2 min-h-0 overflow-y-auto overflow-x-hidden">
+
+            <!-- Compact Stats Grid -->
+            <div class="grid grid-cols-2 gap-2 flex-shrink-0 stagger-children">
+                <!-- Total Paid -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group hover:border-rose-500/30 transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("health_insurance.total_paid") if _ else "Gezahlt" }}</span>
+                        <div class="w-5 h-5 bg-rose-500/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.total_paid).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-rose-500 font-medium">{{ stats.payment_count }} {{ _("health_insurance.payments") if _ else "Zahl." }}</p>
+                </div>
+
+                <!-- Total Deductible -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group hover:border-forest/30 transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("health_insurance.deductible") if _ else "Absetzbar" }}</span>
+                        <div class="w-5 h-5 bg-forest/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-forest dark:text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold text-forest dark:text-sage">€{{ "{:,.0f}".format(stats.total_deductible).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-forest dark:text-sage font-medium">{{ _("health_insurance.tax_benefit") if _ else "Steuerersparnis" }}</p>
+                </div>
+
+                <!-- Wahlleistungen Used -->
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 group hover:border-amber/30 transition-colors">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500">{{ _("coverage.wahlleistungen") if _ else "Wahll." }}</span>
+                        <div class="w-5 h-5 bg-amber/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.wahlleistungen_total).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-amber font-medium">{{ _("health_insurance.of_limit") if _ else "von" }} 2.800</p>
+                </div>
+
+                <!-- This Month -->
+                <div class="bg-gradient-to-br from-rose-500 to-rose-600 dark:from-neutral-700 dark:to-neutral-600 rounded-lg p-3 text-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-white/60">{{ _("health_insurance.this_month") if _ else "Monat" }}</span>
+                        <div class="w-5 h-5 bg-white/10 rounded flex items-center justify-center">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="font-mono text-base font-bold">€{{ "{:,.0f}".format(stats.this_month_total).replace(",", " ") }}</p>
+                    <p class="text-[9px] text-white/80 font-medium">{{ stats.this_month_count }} {{ _("health_insurance.new") if _ else "neu" }}</p>
+                </div>
+            </div>
+
+            <!-- Coverage Breakdown Chart -->
+            <div class="bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-2">
+                    {{ _("health_insurance.by_coverage") if _ else "Nach Leistungsart" }}
+                </h3>
+                <div id="coverage-donut" class="flex justify-center" style="width: 100%; height: 100px;"></div>
+                <div id="coverage-legend" class="space-y-0.5 mt-2"></div>
+            </div>
+
+            <!-- Wahlleistungen Limit Progress -->
+            <div class="bg-white dark:bg-neutral-800 rounded-lg border border-cream-dark/50 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[9px] font-bold uppercase tracking-wider text-slate/70 dark:text-gray-500 mb-2">
+                    {{ _("health_insurance.limit_status") if _ else "Wahlleistungen Limit" }}
+                </h3>
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-slate dark:text-gray-400">{{ _("health_insurance.used") if _ else "Genutzt" }}</span>
+                        <span class="font-mono font-medium text-charcoal dark:text-white">€{{ "{:,.0f}".format(stats.wahlleistungen_total).replace(",", " ") }}</span>
+                    </div>
+                    <div class="w-full bg-cream dark:bg-neutral-700 rounded-full h-1.5">
+                        {% set limit_percent = (stats.wahlleistungen_total / 2800 * 100) | int %}
+                        <div class="h-1.5 rounded-full {% if limit_percent >= 100 %}bg-terracotta{% elif limit_percent >= 80 %}bg-amber{% else %}bg-forest{% endif %}"
+                             style="width: {{ [limit_percent, 100] | min }}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-slate dark:text-gray-500">{{ _("health_insurance.remaining") if _ else "Verbleibend" }}</span>
+                        <span class="font-mono {% if stats.remaining_limit > 0 %}text-forest dark:text-sage{% else %}text-terracotta{% endif %}">
+                            €{{ "{:,.0f}".format(stats.remaining_limit).replace(",", " ") }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tax Info Card - Compact -->
+            <div class="bg-gradient-to-br from-forest/5 to-sage/5 dark:from-neutral-800 dark:to-neutral-800 rounded-lg border border-forest/20 dark:border-neutral-700 p-3 flex-shrink-0">
+                <h3 class="text-[9px] font-bold uppercase tracking-wider text-forest dark:text-sage mb-2">
+                    {{ _("health_insurance.tax_info") if _ else "§ 10 EStG" }}
+                </h3>
+                <div class="space-y-1 text-[10px] text-slate dark:text-gray-400">
+                    <div class="flex items-start gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-forest mt-1 shrink-0"></span>
+                        <span><strong class="text-forest dark:text-sage">{{ _("health_insurance.basis_hint_title") if _ else "Basis:" }}</strong> {{ _("health_insurance.basis_hint") if _ else "100% absetzbar" }}</span>
+                    </div>
+                    <div class="flex items-start gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sage mt-1 shrink-0"></span>
+                        <span><strong class="text-forest dark:text-sage">{{ _("health_insurance.pflege_hint_title") if _ else "Pflege:" }}</strong> {{ _("health_insurance.pflege_hint") if _ else "100% absetzbar" }}</span>
+                    </div>
+                    <div class="flex items-start gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber mt-1 shrink-0"></span>
+                        <span><strong class="text-amber">{{ _("health_insurance.wahl_hint_title") if _ else "Wahl:" }}</strong> {{ _("health_insurance.wahl_hint") if _ else "max. 2.800€" }}</span>
+                    </div>
+                    <div class="flex items-start gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1 shrink-0"></span>
+                        <span><strong class="text-rose-500">{{ _("health_insurance.krankengeld_hint_title") if _ else "GKV:" }}</strong> {{ _("health_insurance.krankengeld_hint") if _ else "-4% Abzug" }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Payment Table -->
+        <div class="col-span-9 flex flex-col min-h-0">
+
+            <!-- Filter Row -->
+            <div class="flex items-center justify-between mb-3 flex-shrink-0">
+                <div class="flex gap-1.5">
+                    <button
+                        hx-get="/krankenversicherung/list?insurance_type="
+                        hx-target="#health-insurance-tbody"
+                        hx-swap="innerHTML"
+                        class="health-insurance-tab px-3 py-1.5 text-xs font-semibold rounded-lg bg-forest text-white transition-colors"
+                        data-type=""
+                    >
+                        {{ _("dashboard.all") if _ else "Alle" }}
+                        <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-white/20">{{ stats.payment_count }}</span>
+                    </button>
+                    <button
+                        hx-get="/krankenversicherung/list?insurance_type=gkv"
+                        hx-target="#health-insurance-tbody"
+                        hx-swap="innerHTML"
+                        class="health-insurance-tab px-3 py-1.5 text-xs font-semibold rounded-lg text-charcoal dark:text-gray-300 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 hover:border-forest/50 transition-colors"
+                        data-type="gkv"
+                    >
+                        {{ _("insurance_type.gkv_short") if _ else "GKV" }}
+                    </button>
+                    <button
+                        hx-get="/krankenversicherung/list?insurance_type=pkv"
+                        hx-target="#health-insurance-tbody"
+                        hx-swap="innerHTML"
+                        class="health-insurance-tab px-3 py-1.5 text-xs font-semibold rounded-lg text-charcoal dark:text-gray-300 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 hover:border-forest/50 transition-colors"
+                        data-type="pkv"
+                    >
+                        {{ _("insurance_type.pkv_short") if _ else "PKV" }}
+                    </button>
+                </div>
+                <!-- Coverage Filter -->
+                <select
+                    hx-get="/krankenversicherung/list"
+                    hx-target="#health-insurance-tbody"
+                    hx-swap="innerHTML"
+                    hx-trigger="change"
+                    name="coverage_type"
+                    class="px-3 py-1.5 bg-white dark:bg-neutral-800 border border-cream-dark/50 dark:border-neutral-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-forest/20 dark:focus:ring-amber/20"
+                >
+                    <option value="">{{ _("health_insurance.all_coverage") if _ else "Alle Leistungsarten" }}</option>
+                    <option value="basis_krankenversicherung">{{ _("coverage.basis_krankenversicherung") if _ else "Basisabsicherung" }}</option>
+                    <option value="pflegepflichtversicherung">{{ _("coverage.pflegepflichtversicherung") if _ else "Pflegeversicherung" }}</option>
+                    <option value="wahlleistungen">{{ _("coverage.wahlleistungen") if _ else "Wahlleistungen" }}</option>
+                    <option value="zusatzversicherung">{{ _("coverage.zusatzversicherung") if _ else "Zusatzversicherung" }}</option>
+                </select>
+            </div>
+
+            <!-- Payment Table -->
+            <div class="flex-1 bg-white dark:bg-neutral-800 rounded-xl border border-cream-dark/50 dark:border-neutral-700 overflow-hidden min-h-0">
+                <div class="overflow-auto h-full">
+                    <table class="w-full">
+                        <thead class="bg-cream/70 dark:bg-neutral-700/50 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.date") if _ else "Datum" }}</th>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("health_insurance.provider") if _ else "Versicherung" }}</th>
+                                <th class="px-4 py-2.5 text-left text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("health_insurance.coverage") if _ else "Leistungsart" }}</th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("table.amount") if _ else "Betrag" }}</th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider">{{ _("health_insurance.deductible_short") if _ else "Absetzbar" }}</th>
+                                <th class="px-4 py-2.5 text-right text-[10px] font-bold text-slate dark:text-gray-400 uppercase tracking-wider w-20"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="health-insurance-tbody" class="divide-y divide-cream-dark/30 dark:divide-neutral-700/50">
+                            {% for payment in payments %}
+                            {% include "partials/_health_insurance_row.html" %}
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-16 text-center">
+                                    <div class="flex flex-col items-center gap-3">
+                                        <div class="w-14 h-14 bg-cream dark:bg-neutral-700 rounded-xl flex items-center justify-center">
+                                            <svg class="w-7 h-7 text-slate/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-charcoal dark:text-white">{{ _("health_insurance.no_payments") if _ else "Noch keine Zahlungen" }}</p>
+                                            <p class="text-xs text-slate dark:text-gray-400 mt-1">{{ _("health_insurance.create_first_hint") if _ else "Erfasse deine erste Krankenversicherungszahlung" }}</p>
+                                        </div>
+                                        <button
+                                            hx-get="/krankenversicherung/form"
+                                            hx-target="#health-insurance-form-container"
+                                            hx-swap="innerHTML"
+                                            class="mt-2 px-4 py-2 bg-forest hover:bg-forest-light text-white text-xs font-medium rounded-lg transition-colors"
+                                        >
+                                            {{ _("health_insurance.new_payment") if _ else "Neue Zahlung" }}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Coverage breakdown data from backend
+    const coverageData = {{ coverage_data | tojson }};
+    const isDark = document.documentElement.classList.contains('dark');
+    const totalLabel = {{ (_("label.total") if _ else "Gesamt") | tojson }};
+
+    // Coverage colors
+    const coverageColors = {
+        'basis_krankenversicherung': '#2d5a3d',
+        'pflegepflichtversicherung': '#4a7c5a',
+        'wahlleistungen': '#d4a03a',
+        'zusatzversicherung': '#c4634d'
+    };
+
+    const coverageLabels = {
+        'basis_krankenversicherung': {{ (_("coverage.basis_krankenversicherung") if _ else "Basis") | tojson }},
+        'pflegepflichtversicherung': {{ (_("coverage.pflegepflichtversicherung") if _ else "Pflege") | tojson }},
+        'wahlleistungen': {{ (_("coverage.wahlleistungen") if _ else "Wahl") | tojson }},
+        'zusatzversicherung': {{ (_("coverage.zusatzversicherung") if _ else "Zusatz") | tojson }}
+    };
+
+    // Tab switching
+    document.querySelectorAll('.health-insurance-tab').forEach(tab => {
+        tab.addEventListener('htmx:afterRequest', function() {
+            document.querySelectorAll('.health-insurance-tab').forEach(t => {
+                t.classList.remove('bg-forest', 'text-white');
+                t.classList.add('bg-white', 'dark:bg-neutral-800', 'text-charcoal', 'dark:text-gray-300', 'border');
+            });
+            this.classList.remove('bg-white', 'dark:bg-neutral-800', 'text-charcoal', 'dark:text-gray-300', 'border');
+            this.classList.add('bg-forest', 'text-white');
+        });
+    });
+
+    // Render Coverage Donut Chart - Compact version
+    function renderCoverageDonut() {
+        const container = document.getElementById('coverage-donut');
+        if (!container) return;
+
+        const size = 100;
+        const radius = size / 2 - 8;
+
+        d3.select('#coverage-donut').selectAll('*').remove();
+
+        const svg = d3.select('#coverage-donut')
+            .append('svg')
+            .attr('width', size)
+            .attr('height', size)
+            .append('g')
+            .attr('transform', `translate(${size / 2},${size / 2})`);
+
+        const pie = d3.pie()
+            .value(d => d.value)
+            .sort(null);
+
+        const arc = d3.arc()
+            .innerRadius(radius * 0.55)
+            .outerRadius(radius);
+
+        const data = Object.entries(coverageData).map(([key, value]) => ({
+            key,
+            value,
+            color: coverageColors[key] || '#64748b',
+            label: coverageLabels[key] || key
+        })).filter(d => d.value > 0);
+
+        if (data.length === 0) {
+            svg.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .style('font-size', '9px')
+                .style('fill', isDark ? '#6b7280' : '#94a3b8')
+                .text('Keine Daten');
+            return;
+        }
+
+        const arcs = svg.selectAll('.arc')
+            .data(pie(data))
+            .enter()
+            .append('g')
+            .attr('class', 'arc');
+
+        arcs.append('path')
+            .attr('d', arc)
+            .attr('fill', d => d.data.color)
+            .attr('stroke', isDark ? '#262626' : '#fff')
+            .attr('stroke-width', 2)
+            .style('opacity', 0)
+            .transition()
+            .duration(600)
+            .delay((d, i) => i * 50)
+            .style('opacity', 1)
+            .attrTween('d', function(d) {
+                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                return t => arc(interpolate(t));
+            });
+
+        // Center text
+        const total = data.reduce((sum, d) => sum + d.value, 0);
+        svg.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '-0.1em')
+            .style('font-family', 'DM Sans')
+            .style('font-size', '7px')
+            .style('fill', isDark ? '#9ca3af' : '#64748b')
+            .text(totalLabel);
+
+        svg.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '1em')
+            .style('font-family', 'JetBrains Mono')
+            .style('font-size', '11px')
+            .style('font-weight', '600')
+            .style('fill', isDark ? '#fff' : '#2c2c2c')
+            .text(`${(total/1000).toFixed(1)}k`);
+
+        // Legend - compact
+        const legend = d3.select('#coverage-legend');
+        legend.selectAll('*').remove();
+
+        data.forEach(d => {
+            const item = legend.append('div')
+                .attr('class', 'flex items-center justify-between gap-1');
+
+            item.append('div')
+                .attr('class', 'flex items-center gap-1 min-w-0')
+                .html(`<span class="w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${d.color}"></span>
+                       <span class="text-[9px] text-charcoal dark:text-gray-300 truncate">${d.label}</span>`);
+
+            item.append('span')
+                .attr('class', 'font-mono text-[9px] text-charcoal dark:text-white shrink-0')
+                .text(`€${(d.value).toFixed(0)}`);
+        });
+    }
+
+    // Initial render
+    renderCoverageDonut();
+
+    // Re-render on resize
+    window.addEventListener('resize', () => {
+        renderCoverageDonut();
+    });
+
+    // Re-render on dark mode toggle
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                setTimeout(() => {
+                    renderCoverageDonut();
+                }, 350);
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+</script>
+{% endblock %}

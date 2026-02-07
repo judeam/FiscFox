@@ -1,0 +1,109 @@
+{# Jahresübersicht (Annual Overview) Preview #}
+<div class="space-y-5">
+    <h3 class="font-display text-xl font-semibold text-charcoal dark:text-white">
+        {{ _("report.annual_overview") if _ else "Jahresübersicht" }} {{ data.year }}
+    </h3>
+
+    {# Key Metrics - 3 Column Grid #}
+    <div class="grid grid-cols-3 gap-4">
+        {# Total Revenue #}
+        <div class="text-center p-5 bg-gradient-to-br from-sage/10 to-sage/5 dark:from-sage/20 dark:to-sage/10 rounded-xl border border-sage/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-2">{{ _("report.annual_total_revenue") if _ else "Gesamtumsatz" }}</p>
+            <p class="font-mono text-2xl font-bold text-sage">{{ "{:,.0f}".format(data.total_revenue_gross).replace(",", ".") }} €</p>
+            {% if data.yoy_revenue_change is not none %}
+            <p class="text-xs mt-1.5 {% if data.yoy_revenue_change >= 0 %}text-sage{% else %}text-terracotta{% endif %}">
+                {% if data.yoy_revenue_change >= 0 %}+{% endif %}{{ "{:.1f}".format(data.yoy_revenue_change).replace(".", ",") }}% {{ _("report.vs_prev_year") if _ else "ggü. Vorjahr" }}
+            </p>
+            {% endif %}
+        </div>
+
+        {# Tax Burden #}
+        <div class="text-center p-5 bg-gradient-to-br from-terracotta/10 to-terracotta/5 dark:from-terracotta/20 dark:to-terracotta/10 rounded-xl border border-terracotta/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-2">{{ _("report.annual_tax_burden") if _ else "Steuerbelastung" }}</p>
+            <p class="font-mono text-2xl font-bold text-terracotta">{{ "{:,.0f}".format(data.total_tax_burden).replace(",", ".") }} €</p>
+            <p class="text-xs text-terracotta mt-1.5">
+                {{ "{:.1f}".format(data.effective_tax_rate).replace(".", ",") }}% {{ _("report.annual_effective_rate") if _ else "effektiv" }}
+            </p>
+        </div>
+
+        {# Net After Tax #}
+        <div class="text-center p-5 bg-gradient-to-br from-forest/10 to-forest/5 dark:from-amber/20 dark:to-amber/10 rounded-xl border border-forest/20 dark:border-amber/20">
+            <p class="text-xs text-slate dark:text-gray-400 mb-2">{{ _("report.annual_net_remaining") if _ else "Netto verbleibend" }}</p>
+            <p class="font-mono text-2xl font-bold text-forest dark:text-amber">{{ "{:,.0f}".format(data.net_after_tax).replace(",", ".") }} €</p>
+            <p class="text-xs text-forest dark:text-amber mt-1.5">
+                {{ _("report.annual_after_tax") if _ else "Nach Steuern" }}
+            </p>
+        </div>
+    </div>
+
+    {# Detailed Tax Breakdown #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-4">
+        <h4 class="text-xs font-semibold text-charcoal dark:text-white uppercase tracking-wider mb-3">
+            {{ _("report.breakdown") if _ else "Aufschlüsselung" }}
+        </h4>
+        <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            {# Left Column - Income/Expenses #}
+            <div class="space-y-2">
+                <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                    <span class="text-slate dark:text-gray-400">{{ _("tax.revenue") if _ else "Einnahmen" }} (netto)</span>
+                    <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.total_revenue_net).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                    <span class="text-slate dark:text-gray-400">{{ _("tax.expenses") if _ else "Ausgaben" }} (netto)</span>
+                    <span class="font-mono font-medium text-terracotta">-{{ "{:,.2f}".format(data.total_expenses_net).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+                <div class="flex justify-between py-1.5 font-semibold">
+                    <span class="text-charcoal dark:text-white">{{ _("tax.taxable_income") if _ else "Zu verst. Einkommen" }}</span>
+                    <span class="font-mono text-charcoal dark:text-white">{{ "{:,.2f}".format(data.taxable_income).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+            </div>
+
+            {# Right Column - Taxes #}
+            <div class="space-y-2">
+                <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                    <span class="text-slate dark:text-gray-400">{{ _("tax.income_tax") if _ else "Einkommensteuer" }}</span>
+                    <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.einkommensteuer).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                    <span class="text-slate dark:text-gray-400">{{ _("tax.soli") if _ else "Solidaritätszuschlag" }}</span>
+                    <span class="font-mono font-medium text-charcoal dark:text-white">{{ "{:,.2f}".format(data.solidaritaetszuschlag).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-cream-dark/50 dark:border-neutral-600/50">
+                    <span class="text-slate dark:text-gray-400">{{ _("tax.vat_liability") if _ else "USt-Zahllast" }}</span>
+                    <span class="font-mono font-medium {% if data.ust_zahllast > 0 %}text-charcoal dark:text-white{% else %}text-sage{% endif %}">{{ "{:,.2f}".format(data.ust_zahllast).replace(",", " ").replace(".", ",") }} €</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Monthly Revenue Chart Placeholder #}
+    <div class="bg-cream/50 dark:bg-neutral-700/30 rounded-xl p-4">
+        <h4 class="text-xs font-semibold text-charcoal dark:text-white uppercase tracking-wider mb-3">
+            {{ _("report.annual_monthly_chart") if _ else "Monatliche Entwicklung" }}
+        </h4>
+        <div class="h-32 flex items-end justify-between gap-1 px-2">
+            {% for month in range(1, 13) %}
+            {% set revenue = data.monthly_revenue.get(month, 0) %}
+            {% set max_revenue = data.monthly_revenue.values()|max if data.monthly_revenue.values()|list else 1 %}
+            {% set height_pct = (revenue / max_revenue * 100)|int if max_revenue > 0 else 0 %}
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full bg-sage/50 dark:bg-sage/30 rounded-t transition-all hover:bg-sage dark:hover:bg-sage/50"
+                     style="height: {{ height_pct if height_pct > 5 else 5 }}%"
+                     title="{{ "{:,.0f}".format(revenue).replace(",", ".") }} €">
+                </div>
+                <span class="text-[9px] text-slate dark:text-gray-500">{{ month }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# YoY Expense Change if available #}
+    {% if data.yoy_expense_change is not none %}
+    <div class="flex items-center justify-between text-sm text-slate dark:text-gray-500 bg-cream/30 dark:bg-neutral-700/20 rounded-lg px-4 py-2">
+        <span>{{ _("report.expense_change") if _ else "Ausgabenentwicklung ggü. Vorjahr" }}</span>
+        <span class="font-mono font-medium {% if data.yoy_expense_change <= 0 %}text-sage{% else %}text-terracotta{% endif %}">
+            {% if data.yoy_expense_change >= 0 %}+{% endif %}{{ "{:.1f}".format(data.yoy_expense_change).replace(".", ",") }}%
+        </span>
+    </div>
+    {% endif %}
+</div>
