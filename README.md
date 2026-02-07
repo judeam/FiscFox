@@ -1,6 +1,10 @@
-# FiscFox
+<p align="center">
+  <img src="fiscfox_logo.png" alt="FiscFox Logo" width="200">
+</p>
 
-Privacy-first tax management for German freelancers (Freiberufler).
+<h1 align="center">FiscFox</h1>
+
+<p align="center">Privacy-first tax management for German freelancers (Freiberufler).</p>
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
