@@ -38,6 +38,17 @@ TOOL_SPECS: list[dict[str, Any]] = [
         "args": {"year": "integer tax year (optional, defaults to current)"},
     },
     {
+        "name": "check_scheinselbststaendigkeit_risk",
+        "description": (
+            "Analyze the user's REAL client/invoice data for false self-employment "
+            "(Scheinselbstständigkeit) economic-dependency risk: the share of income "
+            "per client and whether any single client exceeds the ~83% concentration "
+            "threshold. Use for questions about Scheinselbständigkeit, client "
+            "dependency, or income concentration risk."
+        ),
+        "args": {"year": "integer tax year (optional; omit for all-time)"},
+    },
+    {
         "name": "query_database",
         "description": (
             "Run a natural-language query against the user's financial database to "
@@ -104,6 +115,35 @@ async def execute_tool(
         data = stats.model_dump(mode="json")
         data["year"] = year
         return data
+
+    if name == "check_scheinselbststaendigkeit_risk":
+        from src.core.models import SCHEINSELBSTAENDIG_THRESHOLD
+        from src.web.services.client import ClientService
+
+        raw_year = args.get("year")
+        try:
+            year = int(raw_year) if raw_year not in (None, "") else None
+        except (TypeError, ValueError):
+            year = None
+        dist = await ClientService().get_income_distribution(year)
+        top_clients = [
+            {
+                "client": getattr(cs.client, "name", f"#{cs.client.id}"),
+                "income_share_pct": round(float(cs.income_percentage) * 100, 1),
+                "total_invoiced": str(cs.total_invoiced),
+                "at_risk": cs.is_scheinselbstaendig_risk,
+            }
+            for cs in dist.client_breakdown[:5]
+        ]
+        return {
+            "period": year if year is not None else "all-time",
+            "total_income": str(dist.total_income),
+            "max_client_concentration_pct": round(float(dist.max_concentration) * 100, 1),
+            "risk_threshold_pct": round(float(SCHEINSELBSTAENDIG_THRESHOLD) * 100, 1),
+            "scheinselbstaendigkeit_warning": dist.scheinselbstaendig_warning,
+            "clients_at_risk": dist.clients_at_risk,
+            "top_clients": top_clients,
+        }
 
     if name == "query_database":
         from src.db.repository import DB_PATH

@@ -44,7 +44,12 @@ class TestToolRegistry:
 
     def test_expected_tools_present(self) -> None:
         names = {s["name"] for s in TOOL_SPECS}
-        assert {"get_tax_summary", "get_financial_overview", "query_database"} <= names
+        assert {
+            "get_tax_summary",
+            "get_financial_overview",
+            "check_scheinselbststaendigkeit_risk",
+            "query_database",
+        } <= names
 
     def test_prompt_lists_every_tool(self) -> None:
         prompt = tools_prompt()
