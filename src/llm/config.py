@@ -147,6 +147,20 @@ class LLMSettings(BaseModel):
         default=ModelSize.STANDARD, description="Model size to use (standard or lite)"
     )
 
+    # Inference backend: "llamacpp" (in-process GGUF) or "ollama" (shared server).
+    # Ollama shares one model pool with other local apps, avoiding a second copy
+    # of the model competing for VRAM on a single GPU.
+    backend: str = Field(
+        default="llamacpp",
+        description="Inference backend: 'llamacpp' or 'ollama'",
+    )
+    ollama_host: str = Field(
+        default="http://localhost:11434", description="Ollama server URL"
+    )
+    ollama_model: str = Field(
+        default="gemma4", description="Ollama model tag used for the assistant"
+    )
+
     # Paths
     models_dir: Path = Field(
         default=Path("data/models/llm"),

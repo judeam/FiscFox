@@ -3,7 +3,7 @@
 
 .PHONY: build build-lite build-asia up up-lite down dev logs shell test lint clean help
 .PHONY: venv venv-llm venv-asia run sync format typecheck db-init db-shell
-.PHONY: download-models download-model-large download-model-standard download-model-lite llm-status
+.PHONY: download-models download-model-large download-model-standard download-model-lite llm-status run-ollama
 .PHONY: desktop-deps desktop-run desktop-build desktop-build-linux desktop-build-macos desktop-build-windows desktop-install-linux
 
 # Default target
@@ -95,6 +95,9 @@ venv-asia: ## Create venv with Asian mirror (fastest for India/SEA/China)
 
 run: ## Run locally without Docker
 	uv run uvicorn src.main:app --reload --port 8000
+
+run-ollama: ## Run using a shared Ollama server (set model via FISCFOX_LLM_OLLAMA_MODEL)
+	FISCFOX_LLM_BACKEND=ollama uv run uvicorn src.main:app --reload --port 8000
 
 test: ## Run tests locally
 	uv run pytest tests/ -v

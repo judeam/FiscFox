@@ -73,6 +73,10 @@ rag = [
     "sentence-transformers>=2.2.0", # BGE-M3 embeddings + CrossEncoder reranker
     "sqlite-vec>=0.1.0",            # SQLite vector extension (1024 dim)
 ]
+# Ollama backend (use a shared Ollama server instead of in-process llama.cpp)
+ollama = [
+    "httpx>=0.26",                  # async HTTP client for the Ollama API
+]
 # Complete LLM stack (inference + RAG)
 llm-full = [
     "llama-cpp-python>=0.3.0",

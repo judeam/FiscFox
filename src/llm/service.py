@@ -74,6 +74,18 @@ class LLMService:
         self._settings = settings or get_llm_settings()
         self._manager = manager or get_model_manager()
 
+        # Inference backend: in-process llama.cpp (default) or a shared Ollama
+        # server. Ollama avoids a second copy of the model in VRAM.
+        self._backend = self._settings.backend
+        self._ollama_ready = False
+        self._ollama = None
+        if self._backend == "ollama":
+            from src.llm.ollama_backend import OllamaBackend
+
+            self._ollama = OllamaBackend(
+                self._settings.ollama_host, self._settings.ollama_model
+            )
+
         # Response cache (simple dict-based, could use TTLCache)
         self._cache: dict[str, LLMResponse] = {}
         self._cache_timestamps: dict[str, datetime] = {}
@@ -88,6 +100,8 @@ class LLMService:
     @property
     def is_ready(self) -> bool:
         """Check if service is ready for inference."""
+        if self._backend == "ollama":
+            return self._settings.enabled and self._ollama_ready
         return self._settings.enabled and self._manager.is_loaded
 
     @property
@@ -111,6 +125,17 @@ class LLMService:
         """
         if not self._settings.enabled:
             raise LLMNotAvailableError("LLM features are disabled")
+
+        if self._backend == "ollama":
+            if not self._ollama_ready:
+                if not await self._ollama.health():
+                    raise LLMNotAvailableError(
+                        f"Ollama not reachable at {self._settings.ollama_host}. "
+                        f"Start it (`ollama serve`) and pull the model "
+                        f"(`ollama pull {self._settings.ollama_model}`)."
+                    )
+                self._ollama_ready = True
+            return
 
         if not self._manager.is_loaded:
             await self._manager.load_model(model_size)
@@ -237,6 +262,34 @@ class LLMService:
         if config and estimated_tokens > config.context_length:
             raise ContextLengthExceededError(estimated_tokens, config.context_length)
 
+        # Ollama backend: delegate to the shared server.
+        if self._backend == "ollama":
+            start_time = datetime.now()
+            try:
+                result = await self._ollama.chat(
+                    messages,
+                    max_tokens=max_tokens or self._settings.max_tokens,
+                    temperature=(
+                        temperature
+                        if temperature is not None
+                        else self._settings.temperature
+                    ),
+                    top_p=self._settings.top_p,
+                    timeout=timeout or self._settings.inference_timeout,
+                )
+            except Exception as e:
+                raise InferenceError(f"Ollama generation failed: {e}") from e
+            response = LLMResponse(
+                content=result["content"],
+                tokens_used=result["tokens"],
+                generation_time_ms=(datetime.now() - start_time).total_seconds() * 1000,
+                model_name=self._settings.ollama_model,
+                cached=False,
+            )
+            if use_cache:
+                self._set_cache(cache_key, response)
+            return response
+
         # Prepare generation parameters
         gen_params = {
             "messages": messages,
@@ -317,6 +370,25 @@ class LLMService:
         await self.ensure_loaded()
 
         messages = self._build_messages(prompt, system_prompt, conversation_history)
+
+        # Ollama backend: stream from the shared server.
+        if self._backend == "ollama":
+            try:
+                async for piece in self._ollama.chat_stream(
+                    messages,
+                    max_tokens=max_tokens or self._settings.max_tokens,
+                    temperature=(
+                        temperature
+                        if temperature is not None
+                        else self._settings.temperature
+                    ),
+                    top_p=self._settings.top_p,
+                    timeout=self._settings.inference_timeout,
+                ):
+                    yield piece
+            except Exception as e:
+                raise InferenceError(f"Ollama streaming failed: {e}") from e
+            return
 
         gen_params = {
             "messages": messages,
@@ -456,7 +528,8 @@ class LLMService:
 
     async def shutdown(self) -> None:
         """Shutdown service and release resources."""
-        await self._manager.unload_model()
+        if self._backend != "ollama":
+            await self._manager.unload_model()
 
         if LLMService._executor:
             LLMService._executor.shutdown(wait=False)

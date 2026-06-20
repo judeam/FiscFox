@@ -78,7 +78,7 @@ make build-asia
 | Frontend | Jinja2, HTMX, Tailwind CSS |
 | Database | SQLite (WAL mode) |
 | ML | TabPFN, Prophet |
-| LLM | llama.cpp / GGUF (local) — Gemma 4, Qwen3 |
+| LLM | llama.cpp/GGUF or Ollama (local) — Gemma 4, Qwen3 |
 | Embeddings | sentence-transformers + sqlite-vec |
 | Desktop | pywebview, PyInstaller |
 
