@@ -20,7 +20,7 @@ FiscFox helps German self-employed professionals track income, expenses, and tax
 - **Privacy First**: All data stays on your machine. No cloud sync, no telemetry.
 - **German Tax Compliance**: Income tax (Section 32a EStG), VAT, reverse charge, Kleinunternehmer support.
 - **Tax Optimization**: AfA depreciation, Reisekosten, Geschenke limits, Homeoffice-Pauschale, Bewirtung.
-- **Local AI**: Chat with your tax data using local LLMs via Ollama. No data leaves your device.
+- **Local AI**: Chat with your tax data using local LLMs (llama.cpp / GGUF). Hardware-aware model selection auto-scales from a 4B laptop model up to Gemma 4 26B-A4B on a 24GB GPU. No data leaves your device.
 
 ## Screenshots
 
@@ -78,7 +78,8 @@ make build-asia
 | Frontend | Jinja2, HTMX, Tailwind CSS |
 | Database | SQLite (WAL mode) |
 | ML | TabPFN, Prophet |
-| LLM | Ollama (local) |
+| LLM | llama.cpp / GGUF (local) — Gemma 4, Qwen3 |
+| Embeddings | sentence-transformers + sqlite-vec |
 | Desktop | pywebview, PyInstaller |
 
 ## Documentation

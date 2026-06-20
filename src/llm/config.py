@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class ModelSize(StrEnum):
     """Available model sizes for FiscFox LLM."""
 
+    LARGE = "large"  # Gemma 4 26B-A4B (MoE, ~3.8B active, ~17GB, needs ~18GB VRAM)
     STANDARD = "standard"  # Qwen3-4B-Instruct-2507 (~2.5GB, 6GB RAM)
     LITE = "lite"  # Phi-3.5 Mini (~2.3GB, 4GB RAM)
 
@@ -59,9 +60,29 @@ class HardwareCapabilities:
         return self.available_ram_gb >= 4.0  # 2.3GB model + 1.7GB overhead
 
     @property
+    def can_run_large(self) -> bool:
+        """Check if a capable GPU can run the large Gemma 4 26B-A4B model.
+
+        The MoE weights (~17GB at Q4_K_M) plus the KV cache need a GPU with
+        enough VRAM for full offload; CPU-only inference of a 26B model is too
+        slow to be usable, so this requires CUDA with >= 18GB VRAM.
+        """
+        return (
+            self.has_cuda
+            and self.cuda_vram_gb is not None
+            and self.cuda_vram_gb >= 18.0
+        )
+
+    @property
     def recommended_model(self) -> ModelSize:
-        """Recommend model size based on available resources."""
-        if self.can_run_standard:
+        """Recommend model size based on available resources.
+
+        Prefers the large GPU model when a capable CUDA GPU is present, then
+        falls back to RAM-based standard/lite selection for laptop-class CPUs.
+        """
+        if self.can_run_large:
+            return ModelSize.LARGE
+        elif self.can_run_standard:
             return ModelSize.STANDARD
         elif self.can_run_lite:
             return ModelSize.LITE
@@ -95,6 +116,11 @@ class ModelConfig(BaseModel):
     context_length: int = Field(default=8192, ge=512, le=131072)
     batch_size: int = Field(default=512, ge=1, le=2048)
     ram_required_gb: float = Field(..., ge=1.0)
+    vram_required_gb: float | None = Field(
+        default=None,
+        ge=1.0,
+        description="VRAM needed for full GPU offload (None = CPU-friendly model)",
+    )
 
     # Model-specific parameters
     rope_freq_base: float | None = Field(
@@ -141,6 +167,56 @@ class LLMSettings(BaseModel):
     )
     n_threads: int | None = Field(
         default=None, ge=1, description="CPU threads (None = auto-detect)"
+    )
+
+    # KV cache / attention (trade VRAM for longer context)
+    flash_attention: bool = Field(
+        default=True,
+        description="Enable flash attention (also required for KV cache quantization)",
+    )
+    kv_cache_type: str = Field(
+        default="q8_0",
+        description="KV cache dtype: f16 (full), q8_0 (~half VRAM, near-lossless), q4_0 (quarter)",
+    )
+    context_length_override: int | None = Field(
+        default=None,
+        ge=512,
+        le=131072,
+        description="Override the per-model context window (None = use model default)",
+    )
+
+    # RAG embeddings (sentence-transformers + sqlite-vec)
+    embedding_model: str = Field(
+        default="BAAI/bge-m3",
+        description="sentence-transformers model for RAG embeddings",
+    )
+    embedding_dim: int = Field(
+        default=1024,
+        ge=64,
+        le=4096,
+        description="Embedding dimension (must match embedding_model and the vec0 schema)",
+    )
+    embedding_query_prefix: str = Field(
+        default="",
+        description="Instruction prefix prepended to queries (e.g. 'query: ' for e5/Qwen3)",
+    )
+    embedding_passage_prefix: str = Field(
+        default="",
+        description="Instruction prefix prepended to passages (e.g. 'passage: ' for e5)",
+    )
+    embedding_device: str | None = Field(
+        default=None,
+        description="Device for embeddings/reranker: 'cuda', 'cpu', or None (auto-detect)",
+    )
+
+    # RAG reranker (cross-encoder second stage over retrieved candidates)
+    reranker_enabled: bool = Field(
+        default=True,
+        description="Enable cross-encoder reranking of retrieved candidates",
+    )
+    reranker_model: str = Field(
+        default="BAAI/bge-reranker-v2-m3",
+        description="Cross-encoder model for reranking",
     )
 
     # Generation defaults
@@ -204,6 +280,19 @@ class LLMSettings(BaseModel):
 # Pre-configured Model Variants
 # =============================================================================
 
+LARGE_MODEL = ModelConfig(
+    name="Gemma 4 26B-A4B Instruct",
+    filename="gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+    size=ModelSize.LARGE,
+    # Gemma 4 supports up to 256K context. ~16GB weights + a q8_0 KV cache at 32K
+    # fit in 24GB VRAM *when the GPU is otherwise free* (unload other resident
+    # models, e.g. `ollama stop ...`). Raise via FISCFOX_LLM_CONTEXT_LENGTH_OVERRIDE.
+    context_length=32768,
+    batch_size=512,
+    ram_required_gb=18.0,  # ~17GB weights + overhead (system RAM if run on CPU)
+    vram_required_gb=18.0,  # full GPU offload target for the RTX 50-series tier
+)
+
 STANDARD_MODEL = ModelConfig(
     name="Qwen3-4B-Instruct-2507",
     filename="Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
@@ -223,6 +312,7 @@ LITE_MODEL = ModelConfig(
 )
 
 MODEL_CONFIGS: dict[ModelSize, ModelConfig] = {
+    ModelSize.LARGE: LARGE_MODEL,
     ModelSize.STANDARD: STANDARD_MODEL,
     ModelSize.LITE: LITE_MODEL,
 }
@@ -271,7 +361,7 @@ def detect_hardware() -> HardwareCapabilities:
     # Metal detection (Apple Silicon)
     has_metal = platform.system() == "Darwin" and platform.machine() == "arm64"
 
-    # CUDA detection
+    # CUDA detection — prefer torch, fall back to nvidia-smi (no torch dependency)
     has_cuda = False
     cuda_vram_gb: float | None = None
     try:
@@ -282,6 +372,30 @@ def detect_hardware() -> HardwareCapabilities:
             cuda_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
     except ImportError:
         pass
+
+    if not has_cuda:
+        # Torch-free fallback: query the NVIDIA driver directly. Lets the app
+        # detect the GPU (and auto-select the large model) without the heavy torch
+        # dependency, since inference runs through llama.cpp (CUDA), not torch.
+        try:
+            import shutil
+            import subprocess
+
+            smi = shutil.which("nvidia-smi")
+            if smi:
+                result = subprocess.run(
+                    [smi, "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                lines = result.stdout.strip().splitlines()
+                if lines and lines[0].strip():
+                    has_cuda = True
+                    cuda_vram_gb = float(lines[0].strip()) / 1024.0  # MiB -> GiB
+        except Exception:
+            pass
 
     return HardwareCapabilities(
         total_ram_gb=total_ram_gb,

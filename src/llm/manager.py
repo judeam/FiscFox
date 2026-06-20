@@ -117,6 +117,22 @@ class LLMModelManager:
         """
         hw = self.hardware
 
+        # GPU-targeted models (e.g. Gemma 4 26B-A4B) live in VRAM when offloaded,
+        # so validate against VRAM rather than system RAM. mmap'd weights keep the
+        # system-RAM footprint small once layers are on the GPU.
+        gpu_offload = self._settings.n_gpu_layers != 0
+        if config.vram_required_gb is not None and hw.has_cuda and gpu_offload:
+            available_vram = hw.cuda_vram_gb or 0.0
+            if available_vram < config.vram_required_gb:
+                raise InsufficientResourcesError(
+                    f"Insufficient VRAM for {config.name}. "
+                    f"Available: {available_vram:.1f}GB, "
+                    f"Required: {config.vram_required_gb:.1f}GB (full GPU offload)",
+                    required_ram_gb=config.vram_required_gb,
+                    available_ram_gb=available_vram,
+                )
+            return
+
         # 1.5GB safety margin for system and application
         required_ram = config.ram_required_gb + 1.5
 
@@ -203,9 +219,18 @@ class LLMModelManager:
             n_threads = self._settings.n_threads or hw.recommended_threads
             n_gpu_layers = self._settings.n_gpu_layers
 
+            # KV-cache quantization: trade a little quality for big VRAM savings,
+            # letting large models hold much longer context. Quantized KV requires
+            # flash attention, so enable it automatically in that case.
+            kv_types = {"f16": 1, "q8_0": 8, "q4_0": 2}  # ggml type ids
+            kv_type = kv_types.get(self._settings.kv_cache_type.lower(), 1)
+            flash_attn = self._settings.flash_attention or kv_type != 1
+            n_ctx = self._settings.context_length_override or config.context_length
+
             logger.info(
                 f"Loading {config.name} from {model_path} "
-                f"(threads={n_threads}, gpu_layers={n_gpu_layers})"
+                f"(threads={n_threads}, gpu_layers={n_gpu_layers}, "
+                f"n_ctx={n_ctx}, kv_cache={self._settings.kv_cache_type})"
             )
 
             # Mark as loading
@@ -218,10 +243,13 @@ class LLMModelManager:
 
                     return Llama(
                         model_path=model_path,
-                        n_ctx=config.context_length,
+                        n_ctx=n_ctx,
                         n_batch=config.batch_size,
                         n_threads=n_threads,
                         n_gpu_layers=n_gpu_layers,
+                        flash_attn=flash_attn,
+                        type_k=kv_type,
+                        type_v=kv_type,
                         verbose=False,
                         use_mmap=True,  # Memory-map for fast loading
                         use_mlock=False,  # Don't lock in RAM (allow swapping if needed)

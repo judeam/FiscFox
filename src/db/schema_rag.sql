@@ -92,11 +92,11 @@ CREATE INDEX IF NOT EXISTS idx_child_chunks_source ON tax_law_child_chunks(sourc
 -- =============================================================================
 
 -- Vector embeddings for semantic search
--- Uses paraphrase-multilingual-MiniLM-L12-v2 (384 dimensions)
+-- Uses BAAI/bge-m3 (1024 dimensions) by default; must match LLMSettings.embedding_dim
 -- sqlite-vec virtual table for efficient similarity search
 CREATE VIRTUAL TABLE IF NOT EXISTS tax_law_vectors USING vec0(
     chunk_id INTEGER PRIMARY KEY,
-    embedding FLOAT[384]  -- 384-dimensional embeddings
+    embedding FLOAT[1024]  -- 1024-dim embeddings (see FISCFOX_LLM_EMBEDDING_DIM)
 );
 
 

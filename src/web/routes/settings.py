@@ -170,18 +170,14 @@ async def _migrate_from_json(repo: SettingsRepository) -> None:
 
 
 def _serialize_settings(settings: UserSettings) -> str:
-    """Serialize UserSettings to JSON string."""
-    data = settings.model_dump()
+    """Serialize UserSettings to JSON string.
 
-    # Convert special types to serializable format
-    if data.get("default_vat_rate"):
-        data["default_vat_rate"] = str(data["default_vat_rate"].value)
-    if data.get("quarterly_est_amount"):
-        data["quarterly_est_amount"] = str(data["quarterly_est_amount"])
-    if data.get("activity_start_date"):
-        data["activity_start_date"] = data["activity_start_date"].isoformat()
-
-    return json.dumps(data, indent=2)
+    Uses pydantic's JSON mode so Decimal, date, and enum fields are all
+    converted to JSON-compatible types — including zero/empty values that the
+    previous manual conversion skipped (e.g. quarterly_est_amount == Decimal("0")
+    is falsy), which silently broke every settings save with a Decimal TypeError.
+    """
+    return json.dumps(settings.model_dump(mode="json"), indent=2)
 
 
 def _deserialize_settings(data: dict) -> UserSettings:

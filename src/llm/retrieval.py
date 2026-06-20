@@ -20,6 +20,7 @@ import numpy as np
 
 from src.llm.embeddings import EMBEDDING_DIM, EmbeddingService, get_embedding_service
 from src.llm.exceptions import RetrievalError
+from src.llm.reranker import RerankerService, get_reranker_service
 
 if TYPE_CHECKING:
     pass
@@ -70,6 +71,9 @@ class RetrievalResult:
     # Token count for context management
     token_count: int | None = None
 
+    # Cross-encoder rerank score (set when reranking is applied)
+    rerank_score: float | None = None
+
 
 @dataclass
 class RetrievalResponse:
@@ -118,6 +122,10 @@ class RetrievalConfig:
     source_types: list[str] | None = None  # Filter to specific source types
     min_score: float = 0.0  # Minimum RRF score threshold
 
+    # Reranking (cross-encoder second stage)
+    rerank: bool = True  # Rerank candidates with a cross-encoder
+    rerank_candidates: int = 50  # Candidates to fetch before reranking
+
 
 class HybridRetriever:
     """Hybrid retrieval with RRF fusion.
@@ -138,15 +146,18 @@ class HybridRetriever:
         self,
         db_path: str,
         embedding_service: EmbeddingService | None = None,
+        reranker: RerankerService | None = None,
     ):
         """Initialize hybrid retriever.
 
         Args:
             db_path: Path to SQLite database with RAG tables
             embedding_service: Embedding service (creates new if None)
+            reranker: Cross-encoder reranker (lazily created when needed)
         """
         self._db_path = db_path
         self._embedding_service = embedding_service or get_embedding_service()
+        self._reranker = reranker
 
     async def search(
         self,
@@ -211,8 +222,14 @@ class HybridRetriever:
                         r for r in fused_results if r["rrf_score"] >= config.min_score
                     ]
 
-                # Apply final limit
-                fused_results = fused_results[: config.final_limit]
+                # When reranking, over-fetch candidates then rerank down to
+                # final_limit; otherwise apply the final limit directly.
+                prefetch_limit = (
+                    max(config.final_limit, config.rerank_candidates)
+                    if config.rerank
+                    else config.final_limit
+                )
+                fused_results = fused_results[:prefetch_limit]
 
                 # Fetch full chunk data and parent context
                 results = await self._fetch_results(
@@ -224,6 +241,14 @@ class HybridRetriever:
                     results = [
                         r for r in results if r.source_type in config.source_types
                     ]
+
+                # Cross-encoder reranking (second stage)
+                if config.rerank and len(results) > 1:
+                    results = await self._rerank_results(
+                        query, results, config.final_limit
+                    )
+                else:
+                    results = results[: config.final_limit]
 
         except Exception as e:
             raise RetrievalError(str(e), query) from e
@@ -253,6 +278,28 @@ class HybridRetriever:
             combined_context=combined_context,
             total_tokens=total_tokens,
         )
+
+    async def _rerank_results(
+        self,
+        query: str,
+        results: list[RetrievalResult],
+        top_k: int,
+    ) -> list[RetrievalResult]:
+        """Rerank fetched results with a cross-encoder, keeping the top_k.
+
+        Falls back to the original (RRF) order if the reranker is unavailable.
+        """
+        reranker = self._reranker or get_reranker_service()
+        if not reranker.is_enabled:
+            return results[:top_k]
+
+        ranked = await reranker.rerank(query, [r.content for r in results])
+        reranked: list[RetrievalResult] = []
+        for idx, score in ranked[:top_k]:
+            result = results[idx]
+            result.rerank_score = score
+            reranked.append(result)
+        return reranked
 
     async def _vector_search(
         self,

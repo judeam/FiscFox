@@ -24,11 +24,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Embedding dimensions for paraphrase-multilingual-MiniLM-L12-v2
-EMBEDDING_DIM = 384
+# Embedding configuration is driven by LLMSettings (env-overridable via
+# FISCFOX_LLM_EMBEDDING_MODEL / FISCFOX_LLM_EMBEDDING_DIM). The default is
+# BAAI/bge-m3 (1024-dim, multilingual, strong German, 8K context, no prefixes).
+_embedding_settings = get_llm_settings()
 
-# Default model for multilingual German support
-DEFAULT_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+# Default model for multilingual German RAG
+DEFAULT_MODEL = _embedding_settings.embedding_model
+
+# Embedding dimension — MUST match DEFAULT_MODEL and the vec0 schema FLOAT[N]
+EMBEDDING_DIM = _embedding_settings.embedding_dim
 
 
 # =============================================================================
@@ -176,6 +181,9 @@ class EmbeddingService:
         self._model_name = model_name
         self._settings = settings or get_llm_settings()
         self._cache_dir = cache_dir or self._settings.models_dir / "embeddings"
+        self._device = self._settings.embedding_device
+        self._query_prefix = self._settings.embedding_query_prefix
+        self._passage_prefix = self._settings.embedding_passage_prefix
 
         # Lazy loaded model
         self._model: SentenceTransformer | None = None
@@ -209,11 +217,26 @@ class EmbeddingService:
         try:
             from sentence_transformers import SentenceTransformer
 
-            logger.info(f"Loading embedding model: {self._model_name}")
+            logger.info(
+                f"Loading embedding model: {self._model_name} "
+                f"(device={self._device or 'auto'})"
+            )
             self._model = SentenceTransformer(
                 self._model_name,
                 cache_folder=str(self._cache_dir),
+                device=self._device,
             )
+
+            # Guard against a model/dim mismatch that would corrupt vec0 packing
+            actual_dim = self._model.get_sentence_embedding_dimension()
+            if actual_dim is not None and actual_dim != EMBEDDING_DIM:
+                logger.warning(
+                    "Embedding model %s produces %d dims but EMBEDDING_DIM=%d; "
+                    "set FISCFOX_LLM_EMBEDDING_DIM and the vec0 schema to match.",
+                    self._model_name,
+                    actual_dim,
+                    EMBEDDING_DIM,
+                )
             logger.info(f"Embedding model loaded: {self._model_name}")
 
         except ImportError:
@@ -240,12 +263,14 @@ class EmbeddingService:
         self,
         texts: list[str],
         preprocess: bool = True,
+        prefix: str = "",
     ) -> np.ndarray:
         """Generate embeddings synchronously (blocking).
 
         Args:
             texts: List of texts to embed
             preprocess: Whether to preprocess German tax text
+            prefix: Model-specific instruction prefix (e.g. e5/Qwen3 query/passage)
 
         Returns:
             Numpy array of shape (len(texts), EMBEDDING_DIM)
@@ -257,7 +282,11 @@ class EmbeddingService:
         if preprocess:
             processed = [self._preprocessor.preprocess(t) for t in texts]
         else:
-            processed = texts
+            processed = list(texts)
+
+        # Apply model-specific instruction prefix (no-op for prefix-free models)
+        if prefix:
+            processed = [prefix + t for t in processed]
 
         # Check cache for each text
         embeddings = []
@@ -313,7 +342,7 @@ class EmbeddingService:
         loop = asyncio.get_event_loop()
         embeddings = await loop.run_in_executor(
             EmbeddingService._executor,
-            lambda: self._embed_sync([text], preprocess),
+            lambda: self._embed_sync([text], preprocess, self._passage_prefix),
         )
         return embeddings[0]
 
@@ -345,7 +374,7 @@ class EmbeddingService:
             loop = asyncio.get_event_loop()
             batch_embeddings = await loop.run_in_executor(
                 EmbeddingService._executor,
-                lambda b=batch: self._embed_sync(b, preprocess),
+                lambda b=batch: self._embed_sync(b, preprocess, self._passage_prefix),
             )
             all_embeddings.append(batch_embeddings)
 
@@ -374,7 +403,16 @@ class EmbeddingService:
             # Only normalize whitespace for queries
             processed = " ".join(query.split())
 
-        return await self.embed_text(processed, preprocess=False)
+        # Queries use the query-side instruction prefix (asymmetric models)
+        await self.ensure_loaded()
+        loop = asyncio.get_event_loop()
+        embeddings = await loop.run_in_executor(
+            EmbeddingService._executor,
+            lambda: self._embed_sync(
+                [processed], preprocess=False, prefix=self._query_prefix
+            ),
+        )
+        return embeddings[0]
 
     def clear_cache(self) -> int:
         """Clear embedding cache.

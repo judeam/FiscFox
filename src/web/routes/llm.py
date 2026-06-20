@@ -240,11 +240,12 @@ async def sql_query(
     try:
         import os
 
+        # Get database path from settings
+        from src.db.repository import DB_PATH
+
         # Import here to avoid circular imports
         from src.llm.agents import get_text2sql_agent
-
-        # Get database path from settings
-        db_path = os.environ.get("DATABASE_PATH", "data/FiscFox.db")
+        db_path = os.environ.get("DATABASE_PATH", str(DB_PATH))
 
         agent = get_text2sql_agent(llm_service, db_path)
         result = await agent.query(query_request.question)
@@ -456,7 +457,9 @@ async def _process_intent(
         Response text
     """
     import os
-    db_path = os.environ.get("DATABASE_PATH", "data/FiscFox.db")
+
+    from src.db.repository import DB_PATH
+    db_path = os.environ.get("DATABASE_PATH", str(DB_PATH))
 
     if intent == IntentType.TAX_LAW:
         from src.llm.agents import get_tax_rag_agent
@@ -521,77 +524,19 @@ async def _stream_intent_response(
     entities: Any,
     params: dict[str, Any],
 ):
-    """Stream response based on intent.
+    """Stream a chat response via the tool-calling financial assistant.
 
-    Yields tokens as they're generated.
+    The assistant lets the model decide whether to call a data tool (income tax,
+    VAT, financial overview, or a NL database query) and then answers from the
+    user's REAL data; otherwise it answers conversationally. Gemma's function
+    calling — not the regex intent — drives tool use, so the previously
+    misrouted questions (e.g. "wie viel Einkommensteuer schulde ich") now work.
     """
-    import os
-    db_path = os.environ.get("DATABASE_PATH", "data/FiscFox.db")
+    from src.llm.agents import get_financial_assistant
 
-    if intent == IntentType.TAX_LAW:
-        from src.llm.agents import get_tax_rag_agent
-        from src.llm.agents.tax_rag import TaxRAGConfig
-
-        try:
-            agent = get_tax_rag_agent(llm_service, db_path)
-            config = TaxRAGConfig(
-                boost_categories=params.get("boost_categories", []),
-            )
-            async for token in agent.answer_stream(message, config, entities):
-                yield token
-            return
-        except (RetrievalError, Exception):
-            pass
-
-    elif intent == IntentType.FINANCIAL_QUERY:
-        # Text-to-SQL doesn't support streaming, so yield complete response
-        from src.llm.agents import get_text2sql_agent
-
-        try:
-            agent = get_text2sql_agent(llm_service, db_path)
-            result = await agent.query(message, entities=entities)
-
-            # Yield formatted answer
-            yield result.formatted_answer
-
-            # Yield table summary if there are results
-            if result.rows:
-                yield f"\n\n({result.row_count} "
-                lang = get_current_language()
-                if result.row_count == 1:
-                    yield t("ai.sql.row", lang)
-                else:
-                    yield t("ai.sql.rows", lang)
-                yield ")"
-            return
-        except (SQLValidationError, SQLExecutionError) as e:
-            lang = get_current_language()
-            yield t("ai.error.sql_generic", lang).replace("{error}", e.message)
-            return
-        except Exception as e:
-            logger.error(f"Text-to-SQL streaming error: {e}")
-            lang = get_current_language()
-            # Check for timeout
-            if "timeout" in str(e).lower():
-                yield t("ai.error.timeout", lang)
-            else:
-                yield t("ai.error.sql_generic", lang).replace("{error}", str(e))
-            return
-
-    # Default streaming
+    assistant = get_financial_assistant(llm_service)
     lang = get_current_language()
-    if lang == "en":
-        system_prompt = """You are a helpful assistant for German freelancers.
-Answer in English, precisely and in a friendly manner."""
-    else:
-        system_prompt = """Du bist ein hilfreicher Assistent für deutsche Freelancer.
-Antworte auf Deutsch, präzise und freundlich."""
-
-    async for token in llm_service.generate_stream(
-        prompt=message,
-        system_prompt=system_prompt,
-        max_tokens=1000,
-    ):
+    async for token in assistant.answer_stream(message, lang=lang):
         yield token
 
 

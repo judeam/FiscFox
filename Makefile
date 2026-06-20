@@ -3,7 +3,7 @@
 
 .PHONY: build build-lite build-asia up up-lite down dev logs shell test lint clean help
 .PHONY: venv venv-llm venv-asia run sync format typecheck db-init db-shell
-.PHONY: download-models download-model-standard download-model-lite llm-status
+.PHONY: download-models download-model-large download-model-standard download-model-lite llm-status
 .PHONY: desktop-deps desktop-run desktop-build desktop-build-linux desktop-build-macos desktop-build-windows desktop-install-linux
 
 # Default target
@@ -156,6 +156,14 @@ download-models: ## Download LLM models (Qwen3 4B standard + Phi-3.5 lite)
 	@echo ""
 	@echo "Models downloaded to data/models/llm/"
 	@ls -lh data/models/llm/
+
+download-model-large: ## Download large GPU model (Gemma 4 26B-A4B, ~17GB, needs ~18GB VRAM)
+	@mkdir -p data/models/llm
+	@echo "Downloading Gemma 4 26B-A4B Instruct (Q4_K_M, ~17GB)..."
+	@echo "Source: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF"
+	@curl -L --progress-bar -o data/models/llm/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf \
+		"https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/resolve/main/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"
+	@echo "Done! Run with: FISCFOX_LLM_MODEL_SIZE=large make run (auto-selected on 24GB+ GPUs)"
 
 download-model-standard: ## Download only standard model (Qwen3 4B, ~2.5GB, needs 6GB RAM)
 	@mkdir -p data/models/llm

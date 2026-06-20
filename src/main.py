@@ -42,6 +42,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize database and LLM service on startup."""
     await db_manager.initialize()
 
+    # Warm the settings cache from the DB so the persisted language (and other
+    # settings) are applied on every worker, including after --reload. The sync
+    # load_settings() used by most routes only reads this cache, not the DB.
+    try:
+        from src.web.routes.settings import load_settings_async
+
+        await load_settings_async()
+    except Exception as e:
+        logging.warning(f"Settings preload failed: {e}")
+
     # Initialize LLM service if enabled
     llm_service = None
     try:

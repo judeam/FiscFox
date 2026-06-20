@@ -68,10 +68,10 @@ ocr = [
     "paddlepaddle>=3.0",            # PaddlePaddle framework
     "opencv-python>=4.8",           # Image preprocessing
 ]
-# RAG system with vector search
+# RAG system with vector search + reranking
 rag = [
-    "sentence-transformers>=2.2.0", # Multilingual embeddings
-    "sqlite-vec>=0.1.0",            # SQLite vector extension (384 dim)
+    "sentence-transformers>=2.2.0", # BGE-M3 embeddings + CrossEncoder reranker
+    "sqlite-vec>=0.1.0",            # SQLite vector extension (1024 dim)
 ]
 # Complete LLM stack (inference + RAG)
 llm-full = [
